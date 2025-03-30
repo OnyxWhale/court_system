@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Парсер - Court System{% endblock %}</title>
+    <title>{% block title %}Court Parser{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>{% block header %}Парсер форума{% endblock %}</h1>
-        <nav>
-            <a href="{% url 'parser:home' %}" class="btn">Главная</a>
-            <a href="{% url 'parser:threads' %}" class="btn">Треды</a>
-        </nav>
+        <div class="nav-bar">
+            <a href="/">Главная</a>
+            <a href="/parser/">Парсер</a>
+            <a href="/judges/">Судьи</a>
+            <a href="/processor/">Процессор</a>
+            <a href="/stats/">Статистика</a>
+            <a href="/admin/">Админ</a>
+        </div>
         {% block content %}{% endblock %}
     </div>
 </body>

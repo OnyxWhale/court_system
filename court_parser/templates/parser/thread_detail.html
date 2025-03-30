@@ -1,0 +1,21 @@
+{% extends "parser/base.html" %}
+
+{% block content %}
+    <h1>{{ thread.title }}</h1>
+    <p class="prefix">Префикс: {{ thread.prefix|default:"Нет" }}</p>
+    <p class="date">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
+    <p class="date">Обновлён: {{ thread.updated_at|date:"d.m.Y H:i" }}</p>
+
+    <h2>Сообщения</h2>
+    <div class="message-list">
+        {% for message in messages %}
+            <div class="message-block">
+                <p><strong>{{ message.author }}</strong> ({{ message.posted_at|date:"d.m.Y H:i" }}):</p>
+                <p>{{ message.content }}</p>
+            </div>
+        {% empty %}
+            <p class="empty">Сообщений пока нет.</p>
+        {% endfor %}
+    </div>
+    <a href="{% url 'parser:threads' %}" class="btn">Назад к списку тредов</a>
+{% endblock %}

@@ -1,34 +1,27 @@
 {% extends "parser/base.html" %}
 
 {% block content %}
-    <table>
-        <thead>
-            <tr>
-                <th>Заголовок</th>
-                <th>Префикс</th>
-                <th>Дата создания</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for thread in threads %}
-                <tr>
-                    <td>{{ thread.title }}</td>
-                    <td>{{ thread.prefix }}</td>
-                    <td>{{ thread.created_at }}</td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="3">Тредов пока нет</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <h1>Список тредов</h1>
+    <div class="thread-grid">
+        {% for thread in threads %}
+            <a href="{% url 'parser:thread_detail' thread.pk %}" class="thread-card">
+                <h2>{{ thread.title }}</h2>
+                <p class="prefix">Префикс: {{ thread.prefix|default:"Нет" }}</p>
+                <p class="date">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
+            </a>
+        {% empty %}
+            <p class="empty">Тредов пока нет.</p>
+        {% endfor %}
+    </div>
+
     {% if is_paginated %}
         <div class="pagination">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" class="btn">Назад</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn">Предыдущая</a>
             {% endif %}
-            <span>Страница {{ page_obj.number }} из {{ paginator.num_pages }}</span>
+            <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="btn">Вперёд</a>
+                <a href="?page={{ page_obj.next_page_number }}" class="btn">Следующая</a>
             {% endif %}
         </div>
     {% endif %}
