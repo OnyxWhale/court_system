@@ -1,0 +1,13 @@
+services:
+  proxy:
+    build: .
+    ports:
+      - "1408:1408"
+    volumes:
+      - ./static:/app/static
+    networks:
+      - court_network
+
+networks:
+  court_network:
+    external: true

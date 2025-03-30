@@ -1,0 +1,22 @@
+{% extends "parser/base.html" %}
+
+{% block content %}
+    <p>Выберите количество страниц для парсинга:</p>
+    <form method="post">
+        {% csrf_token %}
+        <select name="pages" class="input">
+            <option value="1">1 страница</option>
+            <option value="2">2 страницы</option>
+            <option value="3">3 страницы</option>
+            <option value="5">5 страниц</option>
+            <option value="10">10 страниц</option>
+        </select>
+        <button type="submit" class="btn">Запустить парсинг</button>
+    </form>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    {% if progress %}
+        <p>Статус: {{ progress.status }} ({{ progress.progress }}%)</p>
+    {% endif %}
+{% endblock %}

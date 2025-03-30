@@ -1,0 +1,35 @@
+{% extends "parser/base.html" %}
+
+{% block content %}
+    <table>
+        <thead>
+            <tr>
+                <th>Заголовок</th>
+                <th>Префикс</th>
+                <th>Дата создания</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for thread in threads %}
+                <tr>
+                    <td>{{ thread.title }}</td>
+                    <td>{{ thread.prefix }}</td>
+                    <td>{{ thread.created_at }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="3">Тредов пока нет</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if is_paginated %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn">Назад</a>
+            {% endif %}
+            <span>Страница {{ page_obj.number }} из {{ paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn">Вперёд</a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
