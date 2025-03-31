@@ -42,6 +42,18 @@ services:
       - parser_redis
     networks:
       - court_network
+      
+  parser_beat:
+    build: .
+    command: celery -A court_parser beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    depends_on:
+      - parser_redis
+      - parser_db
+      - parser_celery
+    networks:
+      - court_network
 
 volumes:
   parser_db_data:

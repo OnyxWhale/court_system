@@ -1,22 +1,66 @@
 {% extends "parser/base.html" %}
 
 {% block content %}
-    <p>Выберите количество страниц для парсинга:</p>
-    <form method="post">
-        {% csrf_token %}
-        <select name="pages" class="input">
-            <option value="1">1 страница</option>
-            <option value="2">2 страницы</option>
-            <option value="3">3 страницы</option>
-            <option value="5">5 страниц</option>
-            <option value="10">10 страниц</option>
-        </select>
-        <button type="submit" class="btn">Запустить парсинг</button>
-    </form>
-    {% if message %}
-        <p>{{ message }}</p>
-    {% endif %}
-    {% if progress %}
-        <p>Статус: {{ progress.status }} ({{ progress.progress }}%)</p>
-    {% endif %}
+    <h1>Управление парсингом</h1>
+    <div class="parser-grid">
+        <!-- Блок автоматического парсера -->
+        <div class="parser-card">
+            <h2>Автоматический парсер</h2>
+            <p>Настраиваемый парсинг, запускается автоматически через заданный интервал.</p>
+            <form id="auto-parse-form" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="auto_parse">
+                <label for="auto-pages">Количество страниц:</label>
+                <input type="number" id="auto-pages" name="pages" min="1" value="1" required>
+                <label for="interval">Интервал (в минутах):</label>
+                <input type="number" id="interval" name="interval" min="1" value="60" required>
+                <button type="submit" class="btn">Запустить</button>
+            </form>
+            {% if auto_parse %}
+                <p class="status">Статус: Работает ({{ auto_parse.pages }} страниц каждые {{ auto_parse.interval }} минут)</p>
+            {% else %}
+                <p class="status">Статус: Не запущен</p>
+            {% endif %}
+        </div>
+
+        <!-- Блок ручного парсера -->
+        <div class="parser-card">
+            <h2>Ручной парсер</h2>
+            <p>Запускайте парсинг вручную, указав количество страниц.</p>
+            <form id="manual-parse-form" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="manual_parse">
+                <label for="manual-pages">Количество страниц:</label>
+                <input type="number" id="manual-pages" name="pages" min="1" value="1" required>
+                <button type="submit" class="btn">Запустить</button>
+            </form>
+            {% if progress %}
+                <p class="status">Статус: {{ progress.status }} ({{ progress.progress|floatformat:0 }}%)</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("manual-parse-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            fetch("/parser/", {
+                method: "POST",
+                body: new FormData(this),
+                headers: {"X-CSRFToken": "{{ csrf_token }}"}
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message || data.error));
+        });
+
+        document.getElementById("auto-parse-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            fetch("/parser/", {
+                method: "POST",
+                body: new FormData(this),
+                headers: {"X-CSRFToken": "{{ csrf_token }}"}
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message || data.error));
+        });
+    </script>
 {% endblock %}
