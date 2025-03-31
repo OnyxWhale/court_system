@@ -2,6 +2,7 @@
 
 {% block content %}
     <h1>{{ thread.title }}</h1>
+    <p><a href="{{ thread.url }}" class="btn forum-link" target="_blank">Перейти к треду на форуме</a></p>
     <p class="prefix">Префикс: {{ thread.prefix|default:"Нет" }}</p>
     <p class="date">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
     <p class="date">Обновлён: {{ thread.updated_at|date:"d.m.Y H:i" }}</p>

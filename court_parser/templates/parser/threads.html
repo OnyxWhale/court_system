@@ -8,6 +8,7 @@
                 <h2>{{ thread.title }}</h2>
                 <p class="prefix">Префикс: {{ thread.prefix|default:"Нет" }}</p>
                 <p class="date">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
+                <p class="author">Автор: {% if thread.threadmessage_set.exists %}{{ thread.threadmessage_set.first.author }}{% else %}Неизвестно{% endif %}</p>
             </a>
         {% empty %}
             <p class="empty">Тредов пока нет.</p>

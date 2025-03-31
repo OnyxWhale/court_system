@@ -21,7 +21,11 @@ class ThreadListView(ListView):
     model = ForumThread
     template_name = "parser/threads.html"
     context_object_name = "threads"
-    paginate_by = 84  # 84 треда на страницу
+    paginate_by = 84
+
+    def get_queryset(self):
+        # Убедимся, что сообщения подгружаются
+        return ForumThread.objects.prefetch_related("threadmessage_set").order_by("-created_at")
 
 class ThreadDetailView(DetailView):
     model = ForumThread

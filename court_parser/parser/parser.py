@@ -5,31 +5,29 @@ from datetime import datetime
 class ForumParser:
     def __init__(self, base_url="https://forum.gta5rp.com/forums/federalnyi-sud.1745/"):
         self.base_url = base_url.rstrip('/') + '/'
-        self.root_url = "https://forum.gta5rp.com/"  # Корневой URL для тредов
+        self.root_url = "https://forum.gta5rp.com/"
         self.headers = {"User-Agent": "Mozilla/5.0"}
 
     def fetch_page(self, url):
-        """Получает HTML-страницу по URL."""
         try:
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             return BeautifulSoup(response.text, "html.parser")
-        except requests.RequestException:
-            return None  # Возвращаем None при ошибке
+        except requests.RequestException as e:
+            print(f"Failed to fetch {url}: {e}")
+            return None
 
     def parse_threads(self, soup):
-        """Парсит список тредов с одной страницы."""
         threads = []
         for thread in soup.select(".structItem--thread"):
-            title_elem = thread.select(".structItem-title a")[-1]
+            title_elem = thread.select_one(".structItem-title a[data-xf-init='preview-tooltip']")
             if not title_elem:
                 continue
             href = title_elem["href"].lstrip('/')
-            # Формируем правильный URL для треда
             url = f"{self.root_url}{href}" if href.startswith("threads/") else f"{self.root_url}threads/{href}"
             title = title_elem.text.strip()
-            prefix_elem = thread.select_one(".structItem-cell--meta .label")
-            prefix = prefix_elem.text.strip() if prefix_elem else ""
+            prefix_elem = thread.select_one(".structItem-title .label")
+            prefix = prefix_elem.text.strip() if prefix_elem else "Нет"
             time_elem = thread.select_one(".structItem-startDate time")
             created_at = datetime.fromisoformat(time_elem["datetime"].replace("Z", "+00:00")) if time_elem else datetime.now()
             threads.append({
@@ -42,7 +40,6 @@ class ForumParser:
         return threads
 
     def parse_all_threads(self, pages):
-        """Парсит треды с указанного количества страниц."""
         all_threads = []
         for page in range(1, pages + 1):
             page_url = self.base_url if page == 1 else f"{self.base_url}page-{page}"
@@ -53,22 +50,24 @@ class ForumParser:
         return all_threads
 
     def parse_messages(self, thread_url):
-        """Парсит сообщения в треде."""
         soup = self.fetch_page(thread_url)
         if not soup:
-            return []  # Если страница недоступна, возвращаем пустой список
+            return []
         messages = []
-        for message in soup.select(".message"):
-            author_elem = message.select_one(".message-attribution-main a")
-            content_elem = message.select_one(".bbWrapper")
-            time_elem = message.select_one(".message-attribution-main time")
-            if not (author_elem and content_elem):
-                continue
-            author = author_elem.text.strip()
-            content = content_elem.text.strip()
+        for msg in soup.select(".message.message--post"):
+            msg_id = msg.get("data-content")
+            msg_url = f"{thread_url}#{msg_id}" if msg_id else thread_url
+
+            author_elem = msg.select_one(".message-userDetails .username")
+            content_elem = msg.select_one(".message-content .bbWrapper")
+            time_elem = msg.select_one(".message-attribution-main time.u-dt")
+
+            author = author_elem.text.strip() if author_elem else "Unknown"
+            content = content_elem.text.strip() if content_elem else "No content found"
             posted_at = datetime.fromisoformat(time_elem["datetime"].replace("Z", "+00:00")) if time_elem else datetime.now()
+
             messages.append({
-                "url": thread_url,
+                "url": msg_url,
                 "author": author,
                 "content": content,
                 "posted_at": posted_at
