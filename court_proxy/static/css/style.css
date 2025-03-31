@@ -1,48 +1,240 @@
-/* Общие стили */
+/* Глобальные стили */
 body {
+    background: #181818;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
     margin: 0;
     padding: 0;
-    font-family: 'Arial', sans-serif;
-    font-size: 16px;
-    background-color: #1d1e20;
-    color: #f8f8f6;
 }
 
-/* Контейнер */
 .container {
-    max-width: 800px;
-    margin: 50px auto;
+    max-width: 1600px;
+    margin: 0 auto;
     padding: 20px;
-    background-color: #36383a;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    text-align: center;
 }
 
-/* Заголовки */
 h1 {
-    font-size: 24px;
+    font-size: 2.5rem;
+    color: #f6d28e; /* Новый акцент */
     margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.5rem;
+    color: #f6d28e;
+    margin: 10px 0;
+}
+
+/* Главная страница */
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.button-card {
+    background: #232323;
+    border-radius: 12px;
+    padding: 20px;
+    text-decoration: none;
+    color: #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.button-card:hover {
+    transform: translateY(-5px);
+    background: #2e2e2e;
+}
+
+.button-card h2 {
+    font-size: 1.4rem;
+    margin: 0 0 10px;
+    color: #f6d28e; /* Новый акцент */
+}
+
+.button-card p {
+    font-size: 0.95rem;
+    color: #b0b0b0;
+}
+
+/* Навигация в парсере */
+.nav-bar {
+    background: #232323;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-around;
+}
+
+.nav-bar a {
+    color: #e0e0e0;
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.nav-bar a:hover {
+    background: #2e2e2e;
+}
+
+/* Сетка тредов */
+.thread-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.thread-card {
+    background: #232323;
+    border-radius: 12px;
+    padding: 20px;
+    text-decoration: none;
+    color: #e0e0e0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.thread-card:hover {
+    transform: translateY(-5px);
+    background: #2e2e2e;
+}
+
+.thread-card h2 {
+    font-size: 1.3rem;
+    margin: 0 0 10px;
+    color: #f6d28e; /* Новый акцент */
+}
+
+.thread-card .prefix, .thread-card .date, .thread-card .author {
+    font-size: 0.95rem;
+    margin: 5px 0;
+    color: #b0b0b0;
+}
+
+.empty {
+    grid-column: span 7;
+    text-align: center;
+    font-size: 1.2rem;
+    color: #b0b0b0;
+}
+
+/* Список сообщений */
+.message-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.message-block {
+    background: #232323;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.message-block p {
+    margin: 5px 0;
+}
+
+.message-block strong {
+    color: #f6d28e; /* Новый акцент */
 }
 
 /* Кнопки */
 .btn {
     display: inline-block;
-    padding: 10px 20px;
-    margin: 5px;
-    background-color: #eac989;
-    color: #1d1e20;
+    padding: 12px 24px;
+    background: #f6d28e; /* Новый акцент */
+    color: #181818;
     text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.3s;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: background 0.2s;
 }
 
 .btn:hover {
-    background-color: #322f2a;
-    color: #f8f8f6;
+    background: #e8c074; /* Оттенок для подсветки */
 }
 
-/* Группа кнопок */
-.button-group {
+.forum-link {
+    background: #2e2e2e;
+    color: #f6d28e;
+}
+
+.forum-link:hover {
+    background: #3a3a3a;
+}
+
+/* Пагинация */
+.pagination {
     margin-top: 20px;
+    text-align: center;
+}
+
+.pagination a {
+    margin: 0 15px;
+}
+
+.pagination span {
+    color: #b0b0b0;
+    margin: 0 15px;
+}
+
+/* Сетка парсеров */
+.parser-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.parser-card {
+    background: #232323;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.parser-card h2 {
+    font-size: 1.5rem;
+    margin: 0 0 10px;
+    color: #f6d28e;
+}
+
+.parser-card p {
+    font-size: 1rem;
+    color: #b0b0b0;
+    margin: 0 0 15px;
+}
+
+.parser-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.parser-card label {
+    font-size: 0.95rem;
+    color: #e0e0e0;
+}
+
+.parser-card input[type="number"] {
+    padding: 8px;
+    border: none;
+    border-radius: 5px;
+    background: #2e2e2e;
+    color: #e0e0e0;
+    font-size: 1rem;
+}
+
+.parser-card .status {
+    margin-top: 15px;
+    font-size: 1rem;
+    color: #f6d28e;
 }
