@@ -6,28 +6,30 @@
     <section class="section">
         <h1 class="section-title">Управление парсингом</h1>
         <div class="parser-container">
-            <article class="parser-card auto-parser">
+            <article class="parser-card card">
                 <h2 class="card-title">Автоматический парсер</h2>
                 <p class="card-description">Запускается автоматически через заданный интервал.</p>
                 <form id="auto-parse-form" method="post" class="parser-form">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="auto_parse">
                     <div class="form-group">
-                        <label for="auto-pages" class="form-label">Страниц:</label>
+                        <label for="auto-pages" class="form-label">Количество страниц</label>
                         <input type="number" id="auto-pages" name="pages" min="1" value="1" required class="form-input">
                     </div>
                     <div class="form-group">
-                        <label for="interval" class="form-label">Интервал (мин):</label>
+                        <label for="interval" class="form-label">Интервал (мин)</label>
                         <input type="number" id="interval" name="interval" min="1" value="5" required class="form-input">
                     </div>
-                    <button type="submit" class="btn btn-primary">Запустить</button>
-                    <button id="stop-auto-parse" class="btn btn-stop" style="display: {% if auto_parse %}block{% else %}none{% endif %};">Остановить</button>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn btn-primary">Запустить</button>
+                        <button id="stop-auto-parse" class="btn btn-stop" style="display: {% if auto_parse %}block{% else %}none{% endif %};">Остановить</button>
+                    </div>
                 </form>
                 <div id="auto-status" class="status-box">
                     {% if auto_parse %}
                         <p class="status-text">Статус: Работает</p>
                         {% if next_run %}
-                            <p class="status-text">До следующего парсинга: {{ next_run|date:"Y-m-d H:i:s" }}</p>
+                            <p class="status-text" id="remaining-time">До следующего парсинга: вычисляется...</p>
                         {% endif %}
                     {% else %}
                         <p class="status-text">Статус: Не активен</p>
@@ -53,7 +55,9 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("auto-status").innerHTML = `<p class="status-text">${data.message}</p>`;
+                document.getElementById("auto-status").innerHTML = `
+                    <p class="status-text">Статус: Работает</p>
+                    <p class="status-text" id="remaining-time">До следующего парсинга: вычисляется...</p>`;
                 document.getElementById("stop-auto-parse").style.display = "block";
             })
             .catch(error => console.error("Ошибка:", error));
@@ -78,23 +82,38 @@
             .catch(error => console.error("Ошибка:", error));
         });
 
+        function formatTime(seconds) {
+            if (seconds <= 0) return "Сейчас";
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes} мин ${remainingSeconds} сек`;
+        }
+
         setInterval(() => {
             fetch("/parser/status/")
             .then(response => response.json())
             .then(data => {
+                const statusBox = document.getElementById("auto-status");
                 if (data.auto_parse) {
-                    let statusHtml = `<p class="status-text">Статус: Работает</p>`;
-                    statusHtml += `<p class="status-text">До следующего парсинга: ${data.next_run}</p>`;
-                    document.getElementById("auto-status").innerHTML = statusHtml;
+                    const remainingTime = Math.max(data.remaining_time, 0);
+                    let status = "Работает";
+                    if (data.progress.status === "running") {
+                        status = "Парсинг выполняется";
+                    } else if (data.progress.status === "completed") {
+                        status = "Ожидание следующего парсинга";
+                    }
+                    statusBox.innerHTML = `
+                        <p class="status-text">Статус: ${status}</p>
+                        <p class="status-text" id="remaining-time">До следующего парсинга: ${formatTime(remainingTime)}</p>`;
                     document.getElementById("stop-auto-parse").style.display = "block";
                 } else {
-                    document.getElementById("auto-status").innerHTML = `
+                    statusBox.innerHTML = `
                         <p class="status-text">Статус: Не активен</p>
                         <p class="status-text">До следующего парсинга: Автоматический парсинг не активен</p>`;
                     document.getElementById("stop-auto-parse").style.display = "none";
                 }
             })
             .catch(error => console.error("Ошибка:", error));
-        }, 200);
+        }, 1000);
     </script>
 {% endblock %}

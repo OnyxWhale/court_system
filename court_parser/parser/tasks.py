@@ -4,6 +4,7 @@ from celery import shared_task
 from django.utils import timezone
 from .parser import ForumParser
 from .models import ForumThread, ThreadMessage, ParseProgress
+from django_celery_beat.models import PeriodicTask
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def parse_forum(self, pages: int) -> None:
         )
         progress.task_id = self.request.id
         progress.status = "running"
-        progress.total_threads = 0  # Инициализация общего количества тредов
+        progress.total_threads = 0
         progress.processed_threads = 0
         progress.progress = 0.0
         progress.save()
@@ -64,11 +65,19 @@ def parse_forum(self, pages: int) -> None:
             )
             progress.save()
 
+        # Обновляем статус и время последнего запуска
         progress.status = "completed"
         progress.progress = 100.0
         progress.task_id = None
         progress.save()
+
+        # Обновляем время последнего запуска для PeriodicTask
+        auto_task = PeriodicTask.objects.filter(name="Auto Parse Forum").first()
+        if auto_task:
+            auto_task.last_run_at = timezone.now()
+            auto_task.save()
+
         logger.info(f"Парсинг {pages} страниц успешно завершён")
     except Exception as e:
         logger.error(f"Ошибка парсинга: {e}")
-        self.retry(countdown=60)  # Повтор через 60 секунд
+        self.retry(countdown=60)

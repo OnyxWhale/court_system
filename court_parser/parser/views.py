@@ -36,17 +36,6 @@ class ParserHomeView(TemplateView):
     template_name = "parser/home.html"
 
     def post(self, request, *args, **kwargs) -> JsonResponse:
-        """
-        Обрабатывает POST-запросы для управления парсингом.
-
-        Args:
-            request: HTTP-запрос.
-            *args: Дополнительные аргументы.
-            **kwargs: Дополнительные именованные аргументы.
-
-        Returns:
-            JsonResponse: Ответ с результатом действия.
-        """
         action = request.POST.get("action")
         if action == "auto_parse":
             try:
@@ -95,15 +84,6 @@ class ParserHomeView(TemplateView):
         return JsonResponse({"error": "Неверное действие"}, status=400)
 
     def get_context_data(self, **kwargs) -> Dict:
-        """
-        Возвращает контекст для шаблона.
-
-        Args:
-            **kwargs: Дополнительные именованные аргументы.
-
-        Returns:
-            Dict: Контекст для рендеринга шаблона.
-        """
         context = super().get_context_data(**kwargs)
         progress = ParseProgress.objects.first()
         auto_task = PeriodicTask.objects.filter(name="Auto Parse Forum").first()
@@ -118,12 +98,6 @@ class ThreadListView(ListView):
     paginate_by = 84
 
     def get_queryset(self):
-        """
-        Возвращает набор данных для списка тредов.
-
-        Returns:
-            QuerySet: Отсортированный набор тредов.
-        """
         return ForumThread.objects.prefetch_related("threadmessage_set").order_by("-created_at")
 
 class ThreadDetailView(DetailView):
@@ -132,38 +106,30 @@ class ThreadDetailView(DetailView):
     context_object_name = "thread"
 
     def get_context_data(self, **kwargs) -> Dict:
-        """
-        Возвращает контекст для детального просмотра треда.
-
-        Args:
-            **kwargs: Дополнительные именованные аргументы.
-
-        Returns:
-            Dict: Контекст для рендеринга шаблона.
-        """
         context = super().get_context_data(**kwargs)
         context["messages"] = ThreadMessage.objects.filter(thread=self.object)
         return context
 
 def parser_status(request) -> JsonResponse:
-    """
-    Возвращает статус парсинга в формате JSON.
-
-    Args:
-        request: HTTP-запрос.
-
-    Returns:
-        JsonResponse: Статус парсинга и автоматического парсинга.
-    """
     progress = ParseProgress.objects.first()
     auto_task = PeriodicTask.objects.filter(name="Auto Parse Forum").first()
     auto_parse, next_run = get_auto_parse_info(auto_task)
+    remaining_time = None
+    if next_run:
+        now = timezone.now()
+        delta = next_run - now
+        remaining_time = int(delta.total_seconds()) if delta.total_seconds() > 0 else 0
+        # Если парсинг завершён, проверяем статус прогресса
+        if progress and progress.status == "completed" and auto_task:
+            remaining_time = int((auto_task.last_run_at + timedelta(minutes=auto_task.interval.every) - now).total_seconds())
+            remaining_time = max(remaining_time, 0)
     data = {
         "progress": {
             "status": progress.status if progress else "Не активен",
             "progress": progress.progress if progress else 0
         },
         "auto_parse": auto_parse,
-        "next_run": next_run.strftime("%Y-%m-%d %H:%M:%S") if next_run else "Автоматический парсинг не активен"
+        "next_run": next_run.strftime("%Y-%m-%d %H:%M:%S") if next_run else "Автоматический парсинг не активен",
+        "remaining_time": remaining_time
     }
     return JsonResponse(data)

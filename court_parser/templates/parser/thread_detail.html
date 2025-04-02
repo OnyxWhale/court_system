@@ -7,7 +7,7 @@
         <h1 class="section-title">{{ thread.title }}</h1>
         <div class="thread-info">
             <a href="{{ thread.url }}" class="btn btn-forum" target="_blank">Перейти к треду на форуме</a>
-            <p class="info-item">Префикс: <span>{{ thread.prefix|default:"Нет" }}</span></p>
+            <p class=".card-description">Префикс: <span>{{ thread.prefix|default:"Нет" }}</span></p>
             <p class="info-item">Создан: <span>{{ thread.created_at|date:"d.m.Y H:i" }}</span></p>
             <p class="info-item">Обновлён: <span>{{ thread.updated_at|date:"d.m.Y H:i" }}</span></p>
         </div>
