@@ -1,29 +1,43 @@
 {% extends "parser/base.html" %}
 
-{% block content %}
-    <h1>Список тредов</h1>
-    <div class="thread-grid">
-        {% for thread in threads %}
-            <a href="{% url 'parser:thread_detail' thread.pk %}" class="thread-card">
-                <h2>{{ thread.title }}</h2>
-                <p class="prefix">Префикс: {{ thread.prefix|default:"Нет" }}</p>
-                <p class="date">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
-                <p class="author">Автор: {% if thread.threadmessage_set.exists %}{{ thread.threadmessage_set.first.author }}{% else %}Неизвестно{% endif %}</p>
-            </a>
-        {% empty %}
-            <p class="empty">Тредов пока нет.</p>
-        {% endfor %}
-    </div>
+{% block title %}Список тредов - Court Parser{% endblock %}
 
-    {% if is_paginated %}
-        <div class="pagination">
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" class="btn">Предыдущая</a>
-            {% endif %}
-            <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="btn">Следующая</a>
-            {% endif %}
+{% block content %}
+    <section class="section">
+        <h1 class="section-title">Список тредов</h1>
+        <div class="thread-grid">
+            {% for thread in threads %}
+                <a href="{% url 'parser:thread_detail' thread.pk %}" class="thread-card">
+                    <h2 class="card-title">{{ thread.title }}</h2>
+                    <p class="info-item">Префикс: <span>{{ thread.prefix|default:"Нет" }}</span></p>
+                    <p class="info-item">Создан: <span>{{ thread.created_at|date:"d.m.Y H:i" }}</span></p>
+                    <p class="info-item">Автор: 
+                        <span>
+                            {% if thread.threadmessage_set.exists %}
+                                {{ thread.threadmessage_set.first.author }}
+                            {% else %}
+                                Неизвестно
+                            {% endif %}
+                        </span>
+                    </p>
+                </a>
+            {% empty %}
+                <p class="empty-text">Тредов пока нет.</p>
+            {% endfor %}
         </div>
-    {% endif %}
+
+        {% if is_paginated %}
+            <nav class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary">Предыдущая</a>
+                {% endif %}
+                <span class="pagination-info">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary">Следующая</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </section>
 {% endblock %}

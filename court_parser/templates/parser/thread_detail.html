@@ -1,22 +1,31 @@
 {% extends "parser/base.html" %}
 
-{% block content %}
-    <h1>{{ thread.title }}</h1>
-    <p><a href="{{ thread.url }}" class="btn forum-link" target="_blank">Перейти к треду на форуме</a></p>
-    <p class="prefix">Префикс: {{ thread.prefix|default:"Нет" }}</p>
-    <p class="date">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
-    <p class="date">Обновлён: {{ thread.updated_at|date:"d.m.Y H:i" }}</p>
+{% block title %}{{ thread.title }} - Court Parser{% endblock %}
 
-    <h2>Сообщения</h2>
-    <div class="message-list">
-        {% for message in messages %}
-            <div class="message-block">
-                <p><strong>{{ message.author }}</strong> ({{ message.posted_at|date:"d.m.Y H:i" }}):</p>
-                <p>{{ message.content }}</p>
-            </div>
-        {% empty %}
-            <p class="empty">Сообщений пока нет.</p>
-        {% endfor %}
-    </div>
-    <a href="{% url 'parser:threads' %}" class="btn">Назад к списку тредов</a>
+{% block content %}
+    <section class="section">
+        <h1 class="section-title">{{ thread.title }}</h1>
+        <div class="thread-info">
+            <a href="{{ thread.url }}" class="btn btn-forum" target="_blank">Перейти к треду на форуме</a>
+            <p class="info-item">Префикс: <span>{{ thread.prefix|default:"Нет" }}</span></p>
+            <p class="info-item">Создан: <span>{{ thread.created_at|date:"d.m.Y H:i" }}</span></p>
+            <p class="info-item">Обновлён: <span>{{ thread.updated_at|date:"d.m.Y H:i" }}</span></p>
+        </div>
+
+        <h2 class="section-subtitle">Сообщения</h2>
+        <div class="message-list">
+            {% for message in messages %}
+                <article class="message-block">
+                    <p class="message-header">
+                        <strong>{{ message.author }}</strong> 
+                        <span>({{ message.posted_at|date:"d.m.Y H:i" }})</span>
+                    </p>
+                    <p class="message-content">{{ message.content }}</p>
+                </article>
+            {% empty %}
+                <p class="empty-text">Сообщений пока нет.</p>
+            {% endfor %}
+        </div>
+        <a href="{% url 'parser:threads' %}" class="btn btn-secondary">Назад к списку тредов</a>
+    </section>
 {% endblock %}

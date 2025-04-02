@@ -1,10 +1,13 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = "django-insecure-ваш_секретный_ключ_здесь"
-DEBUG = True
-ALLOWED_HOSTS = ["localhost", "parser_app", "127.0.0.1", "*"]
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-ваш_секретный_ключ_здесь")
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
+
+FORUM_BASE_URL = os.getenv("FORUM_BASE_URL", "https://forum.gta5rp.com/forums/federalnyi-sud.1745/")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

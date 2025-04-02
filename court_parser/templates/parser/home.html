@@ -1,66 +1,100 @@
 {% extends "parser/base.html" %}
 
-{% block content %}
-    <h1>Управление парсингом</h1>
-    <div class="parser-grid">
-        <!-- Блок автоматического парсера -->
-        <div class="parser-card">
-            <h2>Автоматический парсер</h2>
-            <p>Настраиваемый парсинг, запускается автоматически через заданный интервал.</p>
-            <form id="auto-parse-form" method="post">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="auto_parse">
-                <label for="auto-pages">Количество страниц:</label>
-                <input type="number" id="auto-pages" name="pages" min="1" value="1" required>
-                <label for="interval">Интервал (в минутах):</label>
-                <input type="number" id="interval" name="interval" min="1" value="60" required>
-                <button type="submit" class="btn">Запустить</button>
-            </form>
-            {% if auto_parse %}
-                <p class="status">Статус: Работает ({{ auto_parse.pages }} страниц каждые {{ auto_parse.interval }} минут)</p>
-            {% else %}
-                <p class="status">Статус: Не запущен</p>
-            {% endif %}
-        </div>
+{% block title %}Управление парсингом - Court Parser{% endblock %}
 
-        <!-- Блок ручного парсера -->
-        <div class="parser-card">
-            <h2>Ручной парсер</h2>
-            <p>Запускайте парсинг вручную, указав количество страниц.</p>
-            <form id="manual-parse-form" method="post">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="manual_parse">
-                <label for="manual-pages">Количество страниц:</label>
-                <input type="number" id="manual-pages" name="pages" min="1" value="1" required>
-                <button type="submit" class="btn">Запустить</button>
-            </form>
-            {% if progress %}
-                <p class="status">Статус: {{ progress.status }} ({{ progress.progress|floatformat:0 }}%)</p>
-            {% endif %}
+{% block content %}
+    <section class="section">
+        <h1 class="section-title">Управление парсингом</h1>
+        <div class="parser-container">
+            <article class="parser-card auto-parser">
+                <h2 class="card-title">Автоматический парсер</h2>
+                <p class="card-description">Запускается автоматически через заданный интервал.</p>
+                <form id="auto-parse-form" method="post" class="parser-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="auto_parse">
+                    <div class="form-group">
+                        <label for="auto-pages" class="form-label">Страниц:</label>
+                        <input type="number" id="auto-pages" name="pages" min="1" value="1" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="interval" class="form-label">Интервал (мин):</label>
+                        <input type="number" id="interval" name="interval" min="1" value="5" required class="form-input">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Запустить</button>
+                    <button id="stop-auto-parse" class="btn btn-stop" style="display: {% if auto_parse %}block{% else %}none{% endif %};">Остановить</button>
+                </form>
+                <div id="auto-status" class="status-box">
+                    {% if auto_parse %}
+                        <p class="status-text">Статус: Работает</p>
+                        {% if next_run %}
+                            <p class="status-text">До следующего парсинга: {{ next_run|date:"Y-m-d H:i:s" }}</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="status-text">Статус: Не активен</p>
+                        <p class="status-text">До следующего парсинга: Автоматический парсинг не активен</p>
+                    {% endif %}
+                </div>
+            </article>
         </div>
-    </div>
+        <div class="threads-link">
+            <a href="{% url 'parser:threads' %}" class="btn btn-secondary">Перейти к тредам</a>
+        </div>
+    </section>
 
     <script>
-        document.getElementById("manual-parse-form").addEventListener("submit", function(e) {
-            e.preventDefault();
-            fetch("/parser/", {
-                method: "POST",
-                body: new FormData(this),
-                headers: {"X-CSRFToken": "{{ csrf_token }}"}
-            })
-            .then(response => response.json())
-            .then(data => alert(data.message || data.error));
-        });
+        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
 
         document.getElementById("auto-parse-form").addEventListener("submit", function(e) {
             e.preventDefault();
             fetch("/parser/", {
                 method: "POST",
                 body: new FormData(this),
-                headers: {"X-CSRFToken": "{{ csrf_token }}"}
+                headers: {"X-CSRFToken": csrfToken}
             })
             .then(response => response.json())
-            .then(data => alert(data.message || data.error));
+            .then(data => {
+                document.getElementById("auto-status").innerHTML = `<p class="status-text">${data.message}</p>`;
+                document.getElementById("stop-auto-parse").style.display = "block";
+            })
+            .catch(error => console.error("Ошибка:", error));
         });
+
+        document.getElementById("stop-auto-parse").addEventListener("click", function() {
+            const formData = new FormData();
+            formData.append("action", "stop_auto_parse");
+            formData.append("csrfmiddlewaretoken", csrfToken);
+            fetch("/parser/", {
+                method: "POST",
+                body: formData,
+                headers: {"X-CSRFToken": csrfToken}
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("auto-status").innerHTML = `
+                    <p class="status-text">${data.message}</p>
+                    <p class="status-text">До следующего парсинга: Автоматический парсинг не активен</p>`;
+                this.style.display = "none";
+            })
+            .catch(error => console.error("Ошибка:", error));
+        });
+
+        setInterval(() => {
+            fetch("/parser/status/")
+            .then(response => response.json())
+            .then(data => {
+                if (data.auto_parse) {
+                    let statusHtml = `<p class="status-text">Статус: Работает</p>`;
+                    statusHtml += `<p class="status-text">До следующего парсинга: ${data.next_run}</p>`;
+                    document.getElementById("auto-status").innerHTML = statusHtml;
+                    document.getElementById("stop-auto-parse").style.display = "block";
+                } else {
+                    document.getElementById("auto-status").innerHTML = `
+                        <p class="status-text">Статус: Не активен</p>
+                        <p class="status-text">До следующего парсинга: Автоматический парсинг не активен</p>`;
+                    document.getElementById("stop-auto-parse").style.display = "none";
+                }
+            })
+            .catch(error => console.error("Ошибка:", error));
+        }, 200);
     </script>
 {% endblock %}

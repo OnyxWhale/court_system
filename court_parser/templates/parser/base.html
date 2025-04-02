@@ -7,16 +7,21 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="nav-bar">
-            <a href="/">Главная</a>
-            <a href="/parser/">Парсер</a>
-            <a href="/judges/">Судьи</a>
-            <a href="/processor/">Процессор</a>
-            <a href="/stats/">Статистика</a>
-            <a href="/admin/">Админ</a>
-        </div>
+    <header class="header">
+        <nav class="nav-bar">
+            <a href="/" class="nav-link">Главная</a>
+            <a href="/parser/" class="nav-link">Парсер</a>
+            <a href="/judges/" class="nav-link">Судьи</a>
+            <a href="/processor/" class="nav-link">Процессор</a>
+            <a href="/stats/" class="nav-link">Статистика</a>
+            <a href="/admin/" class="nav-link">Админ</a>
+        </nav>
+    </header>
+    <main class="container">
         {% block content %}{% endblock %}
-    </div>
+    </main>
+    <footer class="footer">
+        <p>&copy; 2025 Court System. Все права защищены.</p>
+    </footer>
 </body>
 </html>

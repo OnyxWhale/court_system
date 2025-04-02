@@ -32,6 +32,7 @@ class ParseProgress(models.Model):
     processed_threads = models.IntegerField(default=0, verbose_name="Обработано тредов")
     total_threads = models.IntegerField(default=0, verbose_name="Всего тредов")
     progress = models.FloatField(default=0.0, verbose_name="Прогресс (%)")
+    task_id = models.CharField(max_length=255, null=True, blank=True)
     status = models.CharField(max_length=50, default="pending", verbose_name="Статус")
 
     class Meta:
