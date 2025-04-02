@@ -1,13 +1,18 @@
 import os
 from pathlib import Path
 
+#BASE_DIR = Path(__file__).resolve().parent.parent
+#SECRET_KEY = "django-insecure-your-secret-key-here"
+DEBUG = True
+#ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+#CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-ваш_секретный_ключ_здесь")
-DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+#DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
 
-FORUM_BASE_URL = os.getenv("FORUM_BASE_URL", "https://forum.gta5rp.com/forums/federalnyi-sud.1745/")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -16,8 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "parser.apps.ParserConfig",
-    "django_celery_beat",
+    "judges.apps.JudgesConfig",
 ]
 
 MIDDLEWARE = [
@@ -30,7 +34,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "court_parser.urls"
+ROOT_URLCONF = "court_judges.urls"
 
 TEMPLATES = [
     {
@@ -48,15 +52,15 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "court_parser.wsgi.application"
+WSGI_APPLICATION = "court_judges.wsgi.application"
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "parser_db",
-        "USER": "parser_user",
-        "PASSWORD": "parser_password",
-        "HOST": "parser_db",
+        "NAME": "judges_db",
+        "USER": "judges_user",
+        "PASSWORD": "judges_password",
+        "HOST": "judges_db",
         "PORT": "5432",
     }
 }
@@ -77,15 +81,7 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CELERY_BROKER_URL = "redis://parser_redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://parser_redis:6379/0"
-CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_BEAT_SCHEDULE = {}
+# Пароль для подтверждения действий
+ACTION_CONFIRMATION_PASSWORD = "123"

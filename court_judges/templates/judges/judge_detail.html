@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ judge.full_name }} - Court Judges{% endblock %}
+
+{% block content %}
+    <section class="section">
+        <h1 class="section-title">{{ judge.full_name }}</h1>
+        <div class="judge-info">
+            <div class="status-box">
+            <p class="info-item">Форумный аккаунт: <span>{{ judge.forum_account }}</span></p>
+            <p class="info-item">ID Discord: <span>{{ judge.discord_id|default:"Не указан" }}</span></p>
+            <p class="info-item">E-mail: <span>{{ judge.email|default:"Не указан" }}</span></p>
+            <p class="info-item">Телеграм: <span>{{ judge.telegram|default:"Не указан" }}</span></p>
+            <p class="info-item">Дополнительно: <span>{{ judge.additional_info|default:"Не указано" }}</span></p>
+            </div>  
+        </div>
+
+        <h2 class="section-subtitle">История работы</h2>
+        <div class="threads-link">
+            <a href="{% url 'judges:work_history_create' judge.pk %}" class="btn btn-primary">Добавить запись</a>
+        </div>
+        <div class="message-list">
+            {% for history in work_histories %}
+                <article class="message-block">
+                    <p class="message-header">
+                        <span>Период: {{ history.start_date|date:"d.m.Y H:i" }} - {{ history.end_date|date:"d.m.Y H:i"|default:"по настоящее время" }}</span>
+                    </p>
+                    <div class="form-buttons">
+                        <button onclick="editWorkHistory('{% url 'judges:work_history_update' history.pk %}')" class="btn btn-primary">Редактировать</button>
+                        <button onclick="deleteWorkHistory('{% url 'judges:work_history_delete' history.pk %}')" class="btn btn-stop">Удалить</button>
+                    </div>
+                </article>
+            {% empty %}
+                <p class="empty-text">Истории работы пока нет.</p>
+            {% endfor %}
+        </div>
+
+        <div class="threads-link">
+            <button onclick="editJudge('{% url 'judges:judge_update' judge.pk %}')" class="btn btn-primary">Редактировать судью</button>
+            <button onclick="deleteJudge('{% url 'judges:judge_delete' judge.pk %}')" class="btn btn-stop">Удалить судью</button>
+            <a href="{% url 'judges:judges_list' %}" class="btn btn-secondary">Назад к списку судей</a>
+        </div>
+
+        <!-- Добавляем скрытый CSRF-токен -->
+        <form style="display: none;">
+            {% csrf_token %}
+        </form>
+    </section>
+
+    <script>
+        function editJudge(url) {
+            showConfirmModal(() => {
+                window.location.href = url;
+            });
+        }
+
+        function editWorkHistory(url) {
+            showConfirmModal(() => {
+                window.location.href = url;
+            });
+        }
+
+        function deleteJudge(url) {
+            showConfirmModal(() => {
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = url;
+                const csrf = document.createElement("input");
+                csrf.type = "hidden";
+                csrf.name = "csrfmiddlewaretoken";
+                csrf.value = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+                form.appendChild(csrf);
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
+
+        function deleteWorkHistory(url) {
+            showConfirmModal(() => {
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = url;
+                const csrf = document.createElement("input");
+                csrf.type = "hidden";
+                csrf.name = "csrfmiddlewaretoken";
+                csrf.value = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+                form.appendChild(csrf);
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
+    </script>
+{% endblock %}

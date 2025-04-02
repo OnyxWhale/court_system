@@ -1,0 +1,31 @@
+services:
+  judges_db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: judges_db
+      POSTGRES_USER: judges_user
+      POSTGRES_PASSWORD: judges_password
+    volumes:
+      - judges_db_data:/var/lib/postgresql/data
+    networks:
+      - court_network
+
+  judges_app:
+    build: .
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             gunicorn --bind 0.0.0.0:8002 court_judges.wsgi:application"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - judges_db
+    networks:
+      - court_network
+
+volumes:
+  judges_db_data:
+
+networks:
+  court_network:
+    external: true

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Судьи - Court Judges{% endblock %}
+
+{% block content %}
+    <section class="section">
+        <h1 class="section-title">Судьи</h1>
+        <div class="threads-link">
+            <a href="{% url 'judges:judge_create' %}" class="btn btn-primary">Добавить судью</a>
+        </div>
+        <div class="thread-grid">
+            {% for judge in judges %}
+                <a href="{% url 'judges:judge_detail' judge.pk %}" class="card">
+                    <h2 class="card-title">{{ judge.full_name }}</h2>
+                    <p class="card-description">Форумный аккаунт: {{ judge.forum_account }}</p>
+                    <div class="status-box">
+                        <p class="card-description">Статус: {% if judge.is_currently_working %}Работает{% else %}Не работает{% endif %}</p>
+                    </div>
+                </a>
+            {% empty %}
+                <p class="empty-text">Судей пока нет</p>
+            {% endfor %}
+        </div>
+        {% if is_paginated %}
+            <div class="pagination">
+                <span class="pagination-info">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary">«</a>
+                    {% endif %}
+                    Страница {{ page_obj.number }} из {{ paginator.num_pages }}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary">»</a>
+                    {% endif %}
+                </span>
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

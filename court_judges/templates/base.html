@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Court Parser{% endblock %}</title>
+        <link rel="stylesheet" href="/static/css/style.css">
+    </head>
+    <body>
+        <header class="header">
+            <nav class="nav-bar">
+                <a href="/" class="nav-link">Главная</a>
+                <a href="/parser/" class="nav-link">Парсер</a>
+                <a href="/judges/" class="nav-link">Судьи</a>
+                <a href="/processor/" class="nav-link">Таблица</a>
+                <a href="/stats/" class="nav-link">Статистика</a>
+                <a href="/admin/" class="nav-link">Админ</a>
+            </nav>
+        </header>
+        <main class="container">
+            {% block content %}{% endblock %}
+        </main>
+        <footer class="footer">
+            <p class="footer-text">© 2025 Court System. Все права защищены.</p>
+        </footer>
+
+    <!-- Модальное окно для подтверждения -->
+    <div id="confirm-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 class="modal-title">Подтверждение действия</h2>
+            <p class="modal-text">Введите пароль для подтверждения:</p>
+            <input type="password" id="confirm-password" class="form-input">
+            <p id="confirm-error" class="error-message" style="display: none;"></p>
+            <div class="modal-buttons">
+                <button id="confirm-submit" class="btn btn-primary">Подтвердить</button>
+                <button id="confirm-cancel" class="btn btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showConfirmModal(callback) {
+            const modal = document.getElementById("confirm-modal");
+            const passwordInput = document.getElementById("confirm-password");
+            const errorMessage = document.getElementById("confirm-error");
+            const submitButton = document.getElementById("confirm-submit");
+            const cancelButton = document.getElementById("confirm-cancel");
+
+            modal.style.display = "block";
+            passwordInput.value = "";
+            errorMessage.style.display = "none";
+
+            submitButton.onclick = () => {
+                const password = passwordInput.value;
+                fetch("/judges/confirm-action/", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: `password=${encodeURIComponent(password)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        modal.style.display = "none";
+                        callback();
+                    } else {
+                        errorMessage.style.display = "block";
+                        errorMessage.textContent = data.error;
+                    }
+                });
+            };
+
+            cancelButton.onclick = () => {
+                modal.style.display = "none";
+            };
+        }
+    </script>
+</body>
+</html>
