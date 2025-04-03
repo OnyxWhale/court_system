@@ -1,0 +1,47 @@
+services:
+  datasets_db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: datasets_db
+      POSTGRES_USER: datasets_user
+      POSTGRES_PASSWORD: datasets_password
+    volumes:
+      - datasets_db_data:/var/lib/postgresql/data
+    networks:
+      - court_network
+
+  datasets_redis:
+    image: redis:7.2
+    networks:
+      - court_network
+
+  datasets_app:
+    build: .
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             gunicorn --bind 0.0.0.0:8003 court_datasets.wsgi:application"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - datasets_db
+      - datasets_redis
+    networks:
+      - court_network
+
+  datasets_celery:
+    build: .
+    command: >
+      sh -c "celery -A court_datasets.celery worker --loglevel=info"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - datasets_db
+      - datasets_redis
+    networks:
+      - court_network
+volumes:
+  datasets_db_data:
+networks:
+  court_network:
+    external: true

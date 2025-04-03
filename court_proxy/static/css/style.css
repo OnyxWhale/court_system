@@ -28,7 +28,7 @@ body {
 
 /* Контейнеры и Layout */
 .container {
-    max-width: 100rem; /* 1600px */
+    max-width: 100%;
     margin: 0 auto;
     padding: 1.25rem; /* 20px */
     flex: 1;
@@ -405,4 +405,134 @@ input[type="datetime-local"]:focus {
 
 .footer__text {
     font-size: 1rem;
+}
+
+/* Таблица данных */
+.datasets-table {
+    width: 100%;
+    border-collapse: separate; /* Для закруглений и теней */
+    border-spacing: 0; /* Убираем промежутки между ячейками */
+    background: var(--primary-bg); /* Фон как у карточек */
+    border-radius: 0.625rem; /* 10px, как у карточек */
+    box-shadow: var(--shadow); /* Тень как у карточек */
+    overflow: hidden; /* Чтобы закругления работали корректно */
+}
+
+.datasets-table thead {
+    background: var(--secondary-bg); /* Цвет заголовков как у навигации */
+}
+
+.datasets-table th {
+    padding: 0.5rem; /* 12px, как в карточках */
+    text-align: center;
+    color: var(--accent-color); /* Цвет текста как у заголовков */
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1rem;
+    border-bottom: 2px solid var(--accent-color); /* Линия под заголовками */
+    border-right: 1px solid var(--secondary-bg);
+}
+
+.datasets-table tbody tr {
+    transition: var(--transition); /* Плавный переход как у карточек */
+}
+
+.datasets-table tbody tr:hover {
+    background: var(--secondary-bg); /* Цвет фона при hover как у карточек */
+}
+
+.datasets-table td {
+    padding: 0.5rem; /* 12px, как в карточках */
+    text-align: center;
+    color: var(--text-color); /* Цвет текста как везде */
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--secondary-bg); /* Разделитель строк */
+    border-right: 1px solid var(--secondary-bg);
+}
+
+.datasets-table tbody tr:last-child td {
+    border-bottom: none; /* Убираем нижнюю границу у последней строки */
+}
+
+.datasets-table a {
+    color: var(--accent-color); /* Цвет ссылок как у акцентов */
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.datasets-table a:hover {
+    text-decoration: underline;
+    color: #e8c074; /* Чуть светлее при hover, как у кнопок */
+}
+
+/* Адаптация для примечаний (textarea или текст) */
+.datasets-table .form__input {
+    width: 100%;
+    min-height: 3rem; /* 48px */
+    resize: vertical;
+    text-align: left;
+    background: var(--secondary-bg);
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    color: var(--text-color);
+    padding: 0.625rem; /* 10px */
+}
+
+.datasets-table .form__input:focus {
+    background: #3a3a3a;
+    outline: 2px solid var(--accent-color);
+}
+
+/* Адаптивность */
+@media (max-width: 75rem) { /* 1200px */
+    .datasets-table {
+        font-size: 0.9rem; /* Уменьшаем шрифт для компактности */
+    }
+
+    .datasets-table th,
+    .datasets-table td {
+  /*    padding: 0.75rem; /* 12px */
+    }
+}
+
+@media (max-width: 48rem) { /* 768px */
+    .datasets-table {
+        display: block; /* Переключаем на блочный режим */
+        overflow-x: auto; /* Горизонтальная прокрутка */
+        white-space: nowrap; /* Предотвращаем перенос текста */
+    }
+
+    .datasets-table thead,
+    .datasets-table tbody,
+    .datasets-table tr,
+    .datasets-table th,
+    .datasets-table td {
+        display: inline-block;
+        width: 100%; /* Каждая строка занимает всю ширину */
+    }
+
+    .datasets-table th,
+    .datasets-table td {
+        text-align: left; /* Выравнивание слева для читаемости */
+        padding: 0.625rem; /* 10px */
+    }
+
+    .datasets-table tbody tr {
+        border-bottom: 1px solid var(--secondary-bg);
+        margin-bottom: 0.625rem; /* 10px */
+    }
+
+    .datasets-table tbody tr:hover {
+        transform: none; /* Отключаем подъём на маленьких экранах */
+    }
+}
+
+.datasets-table th:last-child,
+.datasets-table td:last-child {
+    border-right: none;
+}
+
+/* Убираем лишние границы у последней строки */
+.datasets-table tbody tr:last-child td {
+    border-bottom: none;
 }

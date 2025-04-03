@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Наборы данных - Court Datasets{% endblock %}
+
+{% block content %}
+    <section class="section">
+        <h1 class="section__title">Наборы данных</h1>
+        <div class="message-list">
+            <div class="message-block">
+                <table class="datasets-table">
+                    <thead>
+                        <tr>
+                            <th>Исковое заявление</th>
+                            <th>Дата подачи</th>
+                            <th>Первый ответ суда</th>
+                            <th>Время судопроизводства</th>
+                            <th>Префикс</th>
+                            <th>Текущий статус</th>
+                            <th>Ведущий судья</th>
+                            <th>Примечание</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims %}
+                            <tr>
+                                <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
+                                <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
+                                <td>{{ claim.first_response_time }}</td>
+                                <td>{{ claim.court_time }}</td>
+                                <td>{{ claim.prefix }}</td>
+                                <td>{{ claim.status }}</td>
+                                <td>{{ claim.leading_judges }}</td>
+                                <td>
+                                    <textarea class="form__input" data-thread-id="{{ claim.thread_id }}" onblur="saveNote(this)">{{ claim.note }}</textarea>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="empty-text">Данные отсутствуют</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if is_paginated %}
+            <div class="pagination">
+                <span class="pagination__info">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="button button--secondary">«</a>
+                    {% endif %}
+                    Страница {{ page_obj.number }} из {{ paginator.num_pages }}
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="button button--secondary">»</a>
+                    {% endif %}
+                </span>
+            </div>
+        {% endif %}
+    </section>
+
+    <script>
+        function saveNote(element) {
+            const threadId = element.getAttribute("data-thread-id");
+            const noteText = element.value;
+            fetch("{% url 'datasets:update_note' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) console.error("Ошибка:", data.error);
+            });
+        }
+        </script>
+{% endblock %}

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class ForumThread(models.Model):
     url = models.URLField(unique=True, verbose_name="URL треда")
