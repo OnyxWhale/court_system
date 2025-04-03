@@ -4,17 +4,17 @@
 
 {% block content %}
     <section class="section">
-        <h1 class="section-title">Судьи</h1>
+        <h1 class="section__title">Судьи</h1>
         <div class="threads-link">
-            <a href="{% url 'judges:judge_create' %}" class="btn btn-primary">Добавить судью</a>
+            <a href="{% url 'judges:judge_create' %}" class="button">Добавить судью</a>
         </div>
         <div class="thread-grid">
             {% for judge in judges %}
                 <a href="{% url 'judges:judge_detail' judge.pk %}" class="card">
-                    <h2 class="card-title">{{ judge.full_name }}</h2>
-                    <p class="card-description">Форумный аккаунт: {{ judge.forum_account }}</p>
+                    <h2 class="card__title">{{ judge.full_name }}</h2>
+                    <p class="card__description">Форумный аккаунт: {{ judge.forum_account }}</p>
                     <div class="status-box">
-                        <p class="card-description">Статус: {% if judge.is_currently_working %}Работает{% else %}Не работает{% endif %}</p>
+                        <p class="card__description">Статус: {% if judge.is_currently_working %}Работает{% else %}Не работает{% endif %}</p>
                     </div>
                 </a>
             {% empty %}
@@ -23,13 +23,13 @@
         </div>
         {% if is_paginated %}
             <div class="pagination">
-                <span class="pagination-info">
+                <span class="pagination__info">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="button button--secondary">«</a>
                     {% endif %}
                     Страница {{ page_obj.number }} из {{ paginator.num_pages }}
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary">»</a>
+                        <a href="?page={{ page_obj.next_page_number }}" class="button button--secondary">»</a>
                     {% endif %}
                 </span>
             </div>

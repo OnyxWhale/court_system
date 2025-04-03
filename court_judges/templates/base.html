@@ -1,39 +1,39 @@
 <!DOCTYPE html>
 <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{% block title %}Court Parser{% endblock %}</title>
-        <link rel="stylesheet" href="/static/css/style.css">
-    </head>
-    <body>
-        <header class="header">
-            <nav class="nav-bar">
-                <a href="/" class="nav-link">Главная</a>
-                <a href="/parser/" class="nav-link">Парсер</a>
-                <a href="/judges/" class="nav-link">Судьи</a>
-                <a href="/processor/" class="nav-link">Таблица</a>
-                <a href="/stats/" class="nav-link">Статистика</a>
-                <a href="/admin/" class="nav-link">Админ</a>
-            </nav>
-        </header>
-        <main class="container">
-            {% block content %}{% endblock %}
-        </main>
-        <footer class="footer">
-            <p class="footer-text">© 2025 Court System. Все права защищены.</p>
-        </footer>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Court Parser{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-bar">
+            <a href="/" class="nav-link">Главная</a>
+            <a href="/parser/" class="nav-link">Парсер</a>
+            <a href="/judges/" class="nav-link">Судьи</a>
+            <a href="/processor/" class="nav-link">Таблица</a>
+            <a href="/stats/" class="nav-link">Статистика</a>
+            <a href="/admin/" class="nav-link">Админ</a>
+        </nav>
+    </header>
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+        <p class="footer__text">© 2025 Court System | by Atlas Continental</p>
+    </footer>
 
     <!-- Модальное окно для подтверждения -->
     <div id="confirm-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2 class="modal-title">Подтверждение действия</h2>
-            <p class="modal-text">Введите пароль для подтверждения:</p>
-            <input type="password" id="confirm-password" class="form-input">
+        <div class="modal__content">
+            <h2 class="modal__title">Подтверждение действия</h2>
+            <p class="modal__text">Введите пароль для подтверждения:</p>
+            <input type="password" id="confirm-password" class="form__input">
             <p id="confirm-error" class="error-message" style="display: none;"></p>
-            <div class="modal-buttons">
-                <button id="confirm-submit" class="btn btn-primary">Подтвердить</button>
-                <button id="confirm-cancel" class="btn btn-secondary">Отмена</button>
+            <div class="modal__buttons">
+                <button id="confirm-submit" class="button">Подтвердить</button>
+                <button id="confirm-cancel" class="button button--secondary">Отмена</button>
             </div>
         </div>
     </div>

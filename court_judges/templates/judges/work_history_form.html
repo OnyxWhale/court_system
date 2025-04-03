@@ -5,7 +5,7 @@
 
 {% block content %}
     <section class="section">
-        <h1 class="section-title">{% if object %}Редактировать историю работы{% else %}Добавить историю работы{% endif %}</h1>
+        <h1 class="section__title">{% if object %}Редактировать историю работы{% else %}Добавить историю работы{% endif %}</h1>
         <form method="post" class="parser-form">
             {% csrf_token %}
             {% if form.non_field_errors %}
@@ -13,23 +13,25 @@
                     {{ form.non_field_errors }}
                 </div>
             {% endif %}
-            <div class="form-group">
-                <label for="id_start_date" class="form-label">Дата принятия</label>
-                {{ form.start_date|add_class:"form-input" }}
-                {% if form.start_date.errors %}
-                    <div class="error-message">{{ form.start_date.errors }}</div>
-                {% endif %}
+            <div class="message-block">
+                <div class="form__group">
+                    <label for="id_start_date" class="form__label">Дата принятия</label>
+                    {{ form.start_date|add_class:"form__input" }}
+                    {% if form.start_date.errors %}
+                        <div class="error-message">{{ form.start_date.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_end_date" class="form__label">Дата увольнения</label>
+                    {{ form.end_date|add_class:"form__input" }}
+                    {% if form.end_date.errors %}
+                        <div class="error-message">{{ form.end_date.errors }}</div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="form-group">
-                <label for="id_end_date" class="form-label">Дата увольнения</label>
-                {{ form.end_date|add_class:"form-input" }}
-                {% if form.end_date.errors %}
-                    <div class="error-message">{{ form.end_date.errors }}</div>
-                {% endif %}
-            </div>
-            <div class="form-buttons">
-                <button type="submit" class="btn btn-primary">Сохранить</button>
-                <a href="{% url 'judges:judge_detail' object.judge.pk|default:judge_pk %}" class="btn btn-secondary">Отмена</a>
+            <div class="form__buttons">
+                <button type="submit" class="button">Сохранить</button>
+                <a href="{% url 'judges:judge_detail' object.judge.pk|default:judge_pk %}" class="button button--secondary">Отмена</a>
             </div>
         </form>
     </section>

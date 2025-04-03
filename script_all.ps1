@@ -1,7 +1,7 @@
 # Укажите путь к вашему проекту и папке, которую нужно исключить
 $projectPath = "D:\Development\court_system"
 $excludePath = "D:\Development\court_system\venv"
-$outputFile = "D:\Development\all_code.txt"
+$outputFile = "D:\Development\court_system\all_code.txt"
 
 # Очистка или создание выходного файла
 Remove-Item -Path $outputFile -Force -ErrorAction SilentlyContinue

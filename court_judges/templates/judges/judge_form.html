@@ -5,7 +5,7 @@
 
 {% block content %}
     <section class="section">
-        <h1 class="section-title">{% if object %}Редактировать судью{% else %}Добавить судью{% endif %}</h1>
+        <h1 class="section__title">{% if object %}Редактировать судью{% else %}Добавить судью{% endif %}</h1>
         <form method="post" class="parser-form">
             {% csrf_token %}
             {% if form.non_field_errors %}
@@ -13,51 +13,53 @@
                     {{ form.non_field_errors }}
                 </div>
             {% endif %}
-            <div class="form-group">
-                <label for="id_full_name" class="form-label">Полное имя</label>
-                {{ form.full_name|add_class:"form-input" }}
-                {% if form.full_name.errors %}
-                    <div class="error-message">{{ form.full_name.errors }}</div>
-                {% endif %}
+            <div class="message-block">
+                <div class="form__group">
+                    <label for="id_full_name" class="form__label">Полное имя</label>
+                    {{ form.full_name|add_class:"form__input" }}
+                    {% if form.full_name.errors %}
+                        <div class="error-message">{{ form.full_name.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_forum_account" class="form__label">Форумный аккаунт</label>
+                    {{ form.forum_account|add_class:"form__input" }}
+                    {% if form.forum_account.errors %}
+                        <div class="error-message">{{ form.forum_account.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_discord_id" class="form__label">ID Discord</label>
+                    {{ form.discord_id|add_class:"form__input" }}
+                    {% if form.discord_id.errors %}
+                        <div class="error-message">{{ form.discord_id.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_email" class="form__label">E-mail</label>
+                    {{ form.email|add_class:"form__input" }}
+                    {% if form.email.errors %}
+                        <div class="error-message">{{ form.email.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_telegram" class="form__label">Телеграм</label>
+                    {{ form.telegram|add_class:"form__input" }}
+                    {% if form.telegram.errors %}
+                        <div class="error-message">{{ form.telegram.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form__group">
+                    <label for="id_additional_info" class="form__label">Дополнительно</label>
+                    {{ form.additional_info|add_class:"form__input" }}
+                    {% if form.additional_info.errors %}
+                        <div class="error-message">{{ form.additional_info.errors }}</div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="form-group">
-                <label for="id_forum_account" class="form-label">Форумный аккаунт</label>
-                {{ form.forum_account|add_class:"form-input" }}
-                {% if form.forum_account.errors %}
-                    <div class="error-message">{{ form.forum_account.errors }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="id_discord_id" class="form-label">ID Discord</label>
-                {{ form.discord_id|add_class:"form-input" }}
-                {% if form.discord_id.errors %}
-                    <div class="error-message">{{ form.discord_id.errors }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="id_email" class="form-label">E-mail</label>
-                {{ form.email|add_class:"form-input" }}
-                {% if form.email.errors %}
-                    <div class="error-message">{{ form.email.errors }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="id_telegram" class="form-label">Телеграм</label>
-                {{ form.telegram|add_class:"form-input" }}
-                {% if form.telegram.errors %}
-                    <div class="error-message">{{ form.telegram.errors }}</div>
-                {% endif %}
-            </div>
-            <div class="form-group">
-                <label for="id_additional_info" class="form-label">Дополнительно</label>
-                {{ form.additional_info|add_class:"form-input" }}
-                {% if form.additional_info.errors %}
-                    <div class="error-message">{{ form.additional_info.errors }}</div>
-                {% endif %}
-            </div>
-            <div class="form-buttons">
-                <button type="submit" class="btn btn-primary">Сохранить</button>
-                <a href="{% url 'judges:judges_list' %}" class="btn btn-secondary">Отмена</a>
+            <div class="form__buttons">
+                <button type="submit" class="button">Сохранить</button>
+                <a href="{% url 'judges:judges_list' %}" class="button button--secondary">Отмена</a>
             </div>
         </form>
     </section>

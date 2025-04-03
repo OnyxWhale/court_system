@@ -1,16 +1,16 @@
-{% extends "parser/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Треды - Court Parser{% endblock %}
 
 {% block content %}
     <section class="section">
-        <h1 class="section-title">Треды</h1>
+        <h1 class="section__title">Треды</h1>
         <div class="thread-grid">
             {% for thread in threads %}
                 <a href="{% url 'parser:thread_detail' thread.pk %}" class="card">
-                    <h2 class="card-title">{{ thread.title }}</h2>
-                    <p class="card-description">Префикс: {{ thread.prefix|default:"Нет" }}</p>
-                    <p class="card-description">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
+                    <h2 class="card__title">{{ thread.title }}</h2>
+                    <p class="card__description">Префикс: {{ thread.prefix|default:"Нет" }}</p>
+                    <p class="card__description">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>
                 </a>
             {% empty %}
                 <p class="empty-text">Тредов пока нет</p>
@@ -18,13 +18,13 @@
         </div>
         {% if is_paginated %}
             <div class="pagination">
-                <span class="pagination-info">
+                <span class="pagination__info">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}" class="button button--secondary">«</a>
                     {% endif %}
                     Страница {{ page_obj.number }} из {{ paginator.num_pages }}
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary">»</a>
+                        <a href="?page={{ page_obj.next_page_number }}" class="button button--secondary">»</a>
                     {% endif %}
                 </span>
             </div>

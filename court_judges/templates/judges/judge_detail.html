@@ -4,30 +4,30 @@
 
 {% block content %}
     <section class="section">
-        <h1 class="section-title">{{ judge.full_name }}</h1>
+        <h1 class="section__title">{{ judge.full_name }}</h1>
         <div class="judge-info">
             <div class="status-box">
-            <p class="info-item">Форумный аккаунт: <span>{{ judge.forum_account }}</span></p>
-            <p class="info-item">ID Discord: <span>{{ judge.discord_id|default:"Не указан" }}</span></p>
-            <p class="info-item">E-mail: <span>{{ judge.email|default:"Не указан" }}</span></p>
-            <p class="info-item">Телеграм: <span>{{ judge.telegram|default:"Не указан" }}</span></p>
-            <p class="info-item">Дополнительно: <span>{{ judge.additional_info|default:"Не указано" }}</span></p>
+                <p class="info-item">Форумный аккаунт: <span>{{ judge.forum_account }}</span></p>
+                <p class="info-item">ID Discord: <span>{{ judge.discord_id|default:"Не указан" }}</span></p>
+                <p class="info-item">E-mail: <span>{{ judge.email|default:"Не указан" }}</span></p>
+                <p class="info-item">Телеграм: <span>{{ judge.telegram|default:"Не указан" }}</span></p>
+                <p class="info-item">Дополнительно: <span>{{ judge.additional_info|default:"Не указано" }}</span></p>
             </div>  
         </div>
 
-        <h2 class="section-subtitle">История работы</h2>
+        <h2 class="section__subtitle">История работы</h2>
         <div class="threads-link">
-            <a href="{% url 'judges:work_history_create' judge.pk %}" class="btn btn-primary">Добавить запись</a>
+            <a href="{% url 'judges:work_history_create' judge.pk %}" class="button">Добавить запись</a>
         </div>
         <div class="message-list">
             {% for history in work_histories %}
                 <article class="message-block">
-                    <p class="message-header">
+                    <p class="message__header">
                         <span>Период: {{ history.start_date|date:"d.m.Y H:i" }} - {{ history.end_date|date:"d.m.Y H:i"|default:"по настоящее время" }}</span>
                     </p>
-                    <div class="form-buttons">
-                        <button onclick="editWorkHistory('{% url 'judges:work_history_update' history.pk %}')" class="btn btn-primary">Редактировать</button>
-                        <button onclick="deleteWorkHistory('{% url 'judges:work_history_delete' history.pk %}')" class="btn btn-stop">Удалить</button>
+                    <div class="form__buttons">
+                        <button onclick="editWorkHistory('{% url 'judges:work_history_update' history.pk %}')" class="button">Редактировать</button>
+                        <button onclick="deleteWorkHistory('{% url 'judges:work_history_delete' history.pk %}')" class="button button--danger">Удалить</button>
                     </div>
                 </article>
             {% empty %}
@@ -36,9 +36,9 @@
         </div>
 
         <div class="threads-link">
-            <button onclick="editJudge('{% url 'judges:judge_update' judge.pk %}')" class="btn btn-primary">Редактировать судью</button>
-            <button onclick="deleteJudge('{% url 'judges:judge_delete' judge.pk %}')" class="btn btn-stop">Удалить судью</button>
-            <a href="{% url 'judges:judges_list' %}" class="btn btn-secondary">Назад к списку судей</a>
+            <button onclick="editJudge('{% url 'judges:judge_update' judge.pk %}')" class="button">Редактировать судью</button>
+            <button onclick="deleteJudge('{% url 'judges:judge_delete' judge.pk %}')" class="button button--danger">Удалить судью</button>
+            <a href="{% url 'judges:judges_list' %}" class="button button--secondary">Назад к списку судей</a>
         </div>
 
         <!-- Добавляем скрытый CSRF-токен -->
