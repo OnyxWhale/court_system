@@ -409,7 +409,7 @@ input[type="datetime-local"]:focus {
 
 /* Таблица данных */
 .datasets-table {
-    width: 100%;
+    width: 100%; /* Таблица занимает всю ширину контейнера */
     border-collapse: separate; /* Для закруглений и теней */
     border-spacing: 0; /* Убираем промежутки между ячейками */
     background: var(--primary-bg); /* Фон как у карточек */
@@ -422,16 +422,16 @@ input[type="datetime-local"]:focus {
     background: var(--secondary-bg); /* Цвет заголовков как у навигации */
 }
 
-
 .datasets-table th {
-    padding: 0.5rem; /* 12px, как в карточках */
+    padding: 0.5rem 1.5rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
     text-align: center;
     color: var(--accent-color); /* Цвет текста как у заголовков */
     font-weight: bold;
     text-transform: uppercase;
     font-size: 1rem;
     border-bottom: 2px solid var(--accent-color); /* Линия под заголовками */
-    border-right: 1px solid var(--secondary-bg);
+    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
+    min-width: max-content; /* Ширина ячейки чуть больше текста */
 }
 
 .datasets-table tbody tr {
@@ -443,38 +443,26 @@ input[type="datetime-local"]:focus {
 }
 
 .datasets-table td {
-    padding: 0.5rem; /* 12px, как в карточках */
+    padding: 0.375rem 1rem; /* 6px сверху/снизу (в 2 раза меньше 0.75rem), 16px слева/справа */
     text-align: center;
     color: var(--text-color); /* Цвет текста как везде */
     font-size: 0.95rem;
     border-bottom: 1px solid var(--secondary-bg); /* Разделитель строк */
-    border-right: 1px solid var(--secondary-bg);
+    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
+    vertical-align: middle; /* Выравнивание содержимого по центру */
 }
 
-/* Специфично для ячейки с примечанием */
-.datasets-table td:has(.form__input) {
-    padding: 0; /* Убираем внутренние отступы ячейки */
-}
-
-.datasets-table .form__input {
-    width: 100%;
-    height: 100%; /* Растягиваем на всю высоту ячейки */
-    min-height: 2.25rem; /* Уменьшаем минимальную высоту до 36px для компактности */
-    resize: vertical;
-    text-align: left;
-    background: var(--secondary-bg);
-    border: none;
-    border-radius: 0.3125rem; /* 5px */
-    color: var(--text-color);
-    padding: 0.625rem; /* 10px */
-    margin: 0; /* Убираем возможные внешние отступы */
-    box-sizing: border-box; /* Учитываем padding в высоте */
+/* Убираем лишние границы */
+.datasets-table th:last-child,
+.datasets-table td:last-child {
+    border-right: none; /* Убираем правую границу у последней ячейки в строке */
 }
 
 .datasets-table tbody tr:last-child td {
     border-bottom: none; /* Убираем нижнюю границу у последней строки */
 }
 
+/* Ссылки в таблице */
 .datasets-table a {
     color: var(--accent-color); /* Цвет ссылок как у акцентов */
     text-decoration: none;
@@ -486,33 +474,38 @@ input[type="datetime-local"]:focus {
     color: #e8c074; /* Чуть светлее при hover, как у кнопок */
 }
 
-/* Адаптация для примечаний (textarea или текст) */
+/* Поле ввода примечаний */
+.datasets-table td:has(.form__input) {
+    padding: 0; /* Убираем отступы в ячейке с textarea для плотного прилегания */
+    display: flex;
+    align-items: center; /* Центрируем вертикально */
+    justify-content: center; /* Центрируем горизонтально */
+}
+
 .datasets-table .form__input {
-    width: 100%;
-    min-height: 3rem; /* 48px */
-    resize: vertical;
+    width: 100%; /* Ширина на всю ячейку */
+    height: 100%; /* Высота на всю ячейку */
+    min-height: 1.5rem; /* Уменьшаем до 24px для соответствия узким строкам */
+    resize: vertical; /* Возможность изменения высоты */
     text-align: left;
     background: var(--secondary-bg);
     border: none;
     border-radius: 0.3125rem; /* 5px */
     color: var(--text-color);
-    padding: 0.625rem; /* 10px */
+    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
+    margin: 0; /* Убираем внешние отступы */
+    box-sizing: border-box; /* Учитываем padding в размерах */
 }
 
 .datasets-table .form__input:focus {
-    background: #3a3a3a;
-    outline: 2px solid var(--accent-color);
+    background: #3a3a3a; /* Цвет фона при фокусе */
+    outline: 2px solid var(--accent-color); /* Обводка при фокусе */
 }
 
 /* Адаптивность */
 @media (max-width: 75rem) { /* 1200px */
     .datasets-table {
         font-size: 0.9rem; /* Уменьшаем шрифт для компактности */
-    }
-
-    .datasets-table th,
-    .datasets-table td {
-  /*    padding: 0.75rem; /* 12px */
     }
 }
 
@@ -535,7 +528,7 @@ input[type="datetime-local"]:focus {
     .datasets-table th,
     .datasets-table td {
         text-align: left; /* Выравнивание слева для читаемости */
-        padding: 0.625rem; /* 10px */
+        padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа для мобильных */
     }
 
     .datasets-table tbody tr {
@@ -546,46 +539,4 @@ input[type="datetime-local"]:focus {
     .datasets-table tbody tr:hover {
         transform: none; /* Отключаем подъём на маленьких экранах */
     }
-}
-
-.datasets-table th:last-child,
-.datasets-table td:last-child {
-    border-right: none;
-}
-
-/* Убираем лишние границы у последней строки */
-.datasets-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.datasets-table td {
-    padding: 0.75rem;
-    text-align: center;
-    color: var(--text-color);
-    font-size: 0.95rem;
-    border-bottom: 1px solid var(--secondary-bg);
-    border-right: 1px solid var(--secondary-bg);
-    vertical-align: middle; /* Выравнивание содержимого по центру */
-}
-
-/* Специфично для ячейки с примечанием */
-.datasets-table td:has(.form__input) {
-    display: flex;
-    align-items: center; /* Центрируем вертикально */
-    justify-content: center; /* Центрируем горизонтально, если нужно */
-    padding: 0.75rem; /* Оставляем отступы */
-}
-
-.datasets-table .form__input {
-    width: 100%;
-    min-height: 2.25rem; /* 36px */
-    resize: vertical;
-    text-align: left;
-    background: var(--secondary-bg);
-    border: none;
-    border-radius: 0.3125rem; /* 5px */
-    color: var(--text-color);
-    padding: 0.625rem; /* 10px */
-    margin: 0;
-    box-sizing: border-box;
 }
