@@ -106,3 +106,26 @@
 2025/04/03 12:42:13 [notice] 1#1: start worker process 28
 2025/04/03 12:42:13 [notice] 1#1: start worker process 29
 2025/04/03 12:42:15 [error] 28#28: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /parser/ HTTP/1.1", upstream: "http://172.18.0.5:8001/parser/", host: "localhost:1408", referrer: "http://localhost:1408/judges/1/history/create/"
+2025/04/03 12:57:09 [error] 28#28: *66 datasets_app could not be resolved (2: Server failure), client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", host: "localhost:1408", referrer: "http://localhost:1408/parser/"
+2025/04/03 12:59:44 [error] 28#28: *66 open() "/app/static/30x.html" failed (2: No such file or directory), client: 172.18.0.1, server: localhost, request: "POST /judges/2/delete/ HTTP/1.1", upstream: "http://172.18.0.4:8002/judges/2/delete/", host: "localhost:1408", referrer: "http://localhost:1408/judges/2/"
+2025/04/03 12:59:51 [error] 28#28: *66 open() "/app/static/30x.html" failed (2: No such file or directory), client: 172.18.0.1, server: localhost, request: "GET /judges HTTP/1.1", host: "localhost:1408"
+2025/04/03 13:00:04 [error] 28#28: *66 open() "/app/static/30x.html" failed (2: No such file or directory), client: 172.18.0.1, server: localhost, request: "POST /judges/history/2/delete/ HTTP/1.1", upstream: "http://172.18.0.4:8002/judges/history/2/delete/", host: "localhost:1408", referrer: "http://localhost:1408/judges/1/"
+2025/04/03 13:01:10 [notice] 1#1: signal 3 (SIGQUIT) received, shutting down
+2025/04/03 13:01:10 [notice] 29#29: gracefully shutting down
+2025/04/03 13:01:10 [notice] 29#29: exiting
+2025/04/03 13:01:10 [notice] 28#28: gracefully shutting down
+2025/04/03 13:01:10 [notice] 29#29: exit
+2025/04/03 13:01:10 [notice] 28#28: exiting
+2025/04/03 13:01:10 [notice] 28#28: exit
+2025/04/03 13:01:10 [notice] 1#1: signal 17 (SIGCHLD) received from 28
+2025/04/03 13:01:10 [notice] 1#1: worker process 28 exited with code 0
+2025/04/03 13:01:10 [notice] 1#1: worker process 29 exited with code 0
+2025/04/03 13:01:10 [notice] 1#1: exit
+2025/04/03 13:01:11 [notice] 1#1: using the "epoll" event method
+2025/04/03 13:01:11 [notice] 1#1: nginx/1.27.4
+2025/04/03 13:01:11 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2025/04/03 13:01:11 [notice] 1#1: OS: Linux 5.15.167.4-microsoft-standard-WSL2
+2025/04/03 13:01:11 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/04/03 13:01:11 [notice] 1#1: start worker processes
+2025/04/03 13:01:11 [notice] 1#1: start worker process 27
+2025/04/03 13:01:11 [notice] 1#1: start worker process 28
