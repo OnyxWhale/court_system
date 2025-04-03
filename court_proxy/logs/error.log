@@ -105,3 +105,4 @@
 2025/04/03 12:42:13 [notice] 1#1: start worker processes
 2025/04/03 12:42:13 [notice] 1#1: start worker process 28
 2025/04/03 12:42:13 [notice] 1#1: start worker process 29
+2025/04/03 12:42:15 [error] 28#28: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /parser/ HTTP/1.1", upstream: "http://172.18.0.5:8001/parser/", host: "localhost:1408", referrer: "http://localhost:1408/judges/1/history/create/"
