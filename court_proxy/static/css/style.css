@@ -540,3 +540,123 @@ input[type="datetime-local"]:focus {
         transform: none; /* Отключаем подъём на маленьких экранах */
     }
 }
+
+/* Форма фильтров */
+.filter-form {
+    margin-bottom: 1.25rem; /* 20px */
+}
+
+.filter-box {
+    display: flex;
+    justify-content: space-between; /* Фильтры слева, кнопки справа */
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.625rem; /* 10px */
+    padding: 1.25rem; /* 20px */
+    background: var(--primary-bg); /* #232323 */
+    border: 2px solid var(--secondary-bg); /* #2e2e2e */
+    border-radius: 0.625rem; /* 10px */
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.filter-box__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem; /* 10px */
+    justify-content: flex-start;
+}
+
+.filter-box__buttons {
+    display: flex;
+    gap: 0.625rem; /* 10px */
+    justify-content: flex-end;
+}
+
+.filter-box .form__group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 10rem; /* 160px */
+}
+
+.filter-box .form__input,
+.filter-box input[type="date"],
+.filter-box select {
+    width: 100%;
+    min-width: 8rem; /* 128px */
+    padding: 0.625rem; /* 10px */
+    background: var(--secondary-bg); /* #2e2e2e */
+    color: var(--text-color); /* #e0e0e0 */
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    font-size: 1rem;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.filter-box .form__input:focus,
+.filter-box input[type="date"]:focus,
+.filter-box select:focus {
+    background: #3a3a3a;
+    box-shadow: 0 0 0 2px var(--accent-color); /* Замена outline на box-shadow */
+}
+
+.filter-box .form__label {
+    font-size: 1rem;
+    color: var(--text-color); /* #e0e0e0 */
+    margin-bottom: 0.3125rem; /* 5px */
+}
+
+/* Таблица данных - обновление стилей для textarea */
+.datasets-table td:has(.form__input) {
+    padding: 0;
+    display: flex;
+    align-items: stretch; /* Растягиваем содержимое по высоте */
+    justify-content: center;
+}
+
+.datasets-table .form__input {
+    width: 100%;
+    height: 100%; /* Полная высота ячейки */
+    min-height: 1.5rem; /* Минимальная высота */
+    resize: vertical;
+    text-align: left;
+    background: var(--secondary-bg);
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    color: var(--text-color);
+    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
+    margin: 0;
+    box-sizing: border-box;
+    transition: var(--transition);
+}
+
+.datasets-table .form__input:focus {
+    background: #3a3a3a;
+    box-shadow: 0 0 0 2px var(--accent-color); /* Замена outline на box-shadow */
+    outline: none; /* Убираем стандартную обводку */
+}
+
+/* Адаптивность */
+@media (max-width: 48rem) { /* 768px */
+    .filter-box {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .filter-box__filters {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .filter-box__buttons {
+        justify-content: center;
+        margin-top: 0.625rem; /* 10px */
+    }
+    
+    .filter-box .form__group {
+        width: 100%;
+        max-width: 15rem; /* 240px */
+    }
+}

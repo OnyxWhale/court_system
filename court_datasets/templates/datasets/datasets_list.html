@@ -5,6 +5,56 @@
 {% block content %}
     <section class="section">
         <h1 class="section__title">Наборы данных</h1>
+        <form method="get" class="filter-form">
+            <div class="filter-box">
+                <div class="filter-box__filters">
+                    <div class="form__group">
+                        <label for="title" class="form__label">Заголовок</label>
+                        <input type="text" id="title" name="title" value="{{ filters.title }}" class="form__input" oninput="this.form.submit()">
+                    </div>
+                    <div class="form__group">
+                        <label for="date_from" class="form__label">Дата от</label>
+                        <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
+                    </div>
+                    <div class="form__group">
+                        <label for="date_to" class="form__label">Дата до</label>
+                        <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
+                    </div>
+                    <div class="form__group">
+                        <label for="prefix" class="form__label">Префикс</label>
+                        <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
+                            <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
+                            <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
+                            <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
+                            <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
+                            <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
+                            <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
+                        </select>
+                    </div>
+                    <div class="form__group">
+                        <label for="judge" class="form__label">Судья</label>
+                        <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
+                            <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
+                            {% for judge in judges %}
+                                <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form__group">
+                        <label for="note" class="form__label">Примечание</label>
+                        <select id="note" name="note" class="form__input" onchange="this.form.submit()">
+                            <option value="" {% if not filters.note %}selected{% endif %}>Все</option>
+                            <option value="with" {% if filters.note == "with" %}selected{% endif %}>С примечанием</option>
+                            <option value="without" {% if filters.note == "without" %}selected{% endif %}>Без примечания</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-box__buttons">
+                    <button type="submit" name="urgent" value="true" class="button button--urgent">Срочное</button>
+                    <a href="{% url 'datasets:datasets_list' %}" class="button button--secondary">Сбросить</a>
+                </div>
+            </div>
+        </form>
         <div class="message-list">
             <div class="message-block">
                 <table class="datasets-table">
@@ -15,7 +65,6 @@
                             <th>Первый ответ суда</th>
                             <th>Время судопроизводства</th>
                             <th>Префикс</th>
-                            <th>Текущий статус</th>
                             <th>Ведущий судья</th>
                             <th>Примечание</th>
                         </tr>
@@ -25,25 +74,24 @@
                             <tr>
                                 <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
                                 <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
-                                <td>{{ claim.first_response_time }}</td>
-                                <td>{{ claim.court_time }}</td>
+                                <td>{{ claim.first_response_time|default:"—" }}</td>
+                                <td>{{ claim.court_time|default:"—" }}</td>
                                 <td>{{ claim.prefix }}</td>
-                                <td>{{ claim.status }}</td>
-                                <td>{{ claim.leading_judges }}</td>
+                                <td>{{ claim.leading_judges|default:"—" }}</td>
                                 <td>
                                     <textarea class="form__input" data-thread-id="{{ claim.thread_id }}" onblur="saveNote(this)">{{ claim.note }}</textarea>
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="8" class="empty-text">Данные отсутствуют</td>
+                                <td colspan="7" class="empty-text">Данные отсутствуют</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-        {% if is_paginated %}
+        {% if show_pagination %}
             <div class="pagination">
                 <span class="pagination__info">
                     {% if page_obj.has_previous %}
@@ -68,12 +116,17 @@
                     "Content-Type": "application/x-www-form-urlencoded",
                     "X-CSRFToken": "{{ csrf_token }}",
                 },
-                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText)
+                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText) // Исправлено ¬e на note
             })
             .then(response => response.json())
             .then(data => {
-                if (!data.success) console.error("Ошибка:", data.error);
-            });
+                if (!data.success) {
+                    console.error("Ошибка:", data.error);
+                } else {
+                    console.log("Примечание сохранено:", noteText);
+                }
+            })
+            .catch(error => console.error("Ошибка запроса:", error));
         }
-        </script>
+    </script>
 {% endblock %}
