@@ -423,7 +423,7 @@ input[type="datetime-local"]:focus {
 }
 
 .datasets-table th {
-    padding: 0.5rem 1.5rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
+    padding: 0.5rem 2.5rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
     text-align: center;
     color: var(--accent-color); /* Цвет текста как у заголовков */
     font-weight: bold;
@@ -499,7 +499,7 @@ input[type="datetime-local"]:focus {
 
 .datasets-table .form__input:focus {
     background: #3a3a3a; /* Цвет фона при фокусе */
-    outline: 2px solid var(--accent-color); /* Обводка при фокусе */
+/*  outline: 2px solid var(--accent-color); /* Обводка при фокусе */
 }
 
 /* Адаптивность */
@@ -558,6 +558,7 @@ input[type="datetime-local"]:focus {
     border-radius: 0.625rem; /* 10px */
     box-shadow: var(--shadow);
     transition: var(--transition);
+    align-items: center
 }
 
 .filter-box__filters {
