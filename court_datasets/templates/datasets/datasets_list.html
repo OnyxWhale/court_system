@@ -9,44 +9,44 @@
             <div class="filter-box">
                 <div class="filter-box__filters">
                     <div class="form__group">
-                        <label for="title" class="form__label">Заголовок</label>
-                        <input type="text" id="title" name="title" value="{{ filters.title }}" class="form__input" oninput="this.form.submit()">
-                    </div>
-                    <div class="form__group">
-                        <label for="date_from" class="form__label">Дата от</label>
-                        <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
-                    </div>
-                    <div class="form__group">
-                        <label for="date_to" class="form__label">Дата до</label>
-                        <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
-                    </div>
-                    <div class="form__group">
-                        <label for="prefix" class="form__label">Префикс</label>
-                        <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
-                            <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
-                            <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
-                            <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
-                            <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
-                            <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
-                            <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
-                        </select>
-                    </div>
-                    <div class="form__group">
-                        <label for="judge" class="form__label">Судья</label>
-                        <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
-                            <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
-                            {% for judge in judges %}
-                                <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form__group">
-                        <label for="note" class="form__label">Примечание</label>
-                        <select id="note" name="note" class="form__input" onchange="this.form.submit()">
-                            <option value="" {% if not filters.note %}selected{% endif %}>Все</option>
-                            <option value="with" {% if filters.note == "with" %}selected{% endif %}>С примечанием</option>
-                            <option value="without" {% if filters.note == "without" %}selected{% endif %}>Без примечания</option>
-                        </select>
+                            <label for="title" class="form__label">Название:</label>
+                            <input type="text" id="title" name="title" value="{{ filters.title }}" class="form__input" oninput="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="date_from" class="form__label">Дата от:</label>
+                            <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="date_to" class="form__label">Дата до:</label>
+                            <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="prefix" class="form__label">Префикс:</label>
+                            <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
+                                <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
+                                <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
+                                <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
+                                <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
+                                <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="judge" class="form__label">Судья:</label>
+                            <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
+                                {% for judge in judges %}
+                                    <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="note" class="form__label">Примечание:</label>
+                            <select id="note" name="note" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.note %}selected{% endif %}>Все</option>
+                                <option value="with" {% if filters.note == "with" %}selected{% endif %}>С примечанием</option>
+                                <option value="without" {% if filters.note == "without" %}selected{% endif %}>Без примечания</option>
+                            </select>
                     </div>
                 </div>
                 <div class="filter-box__buttons">
@@ -63,10 +63,10 @@
                             <th>Исковое заявление</th>
                             <th>Дата подачи</th>
                             <th>Первый ответ суда</th>
-                            <th>Время судопроизводства</th>
+                            <th>Судопроизводство</th>
                             <th>Префикс</th>
                             <th>Ведущий судья</th>
-                            <th>Примечание</th>
+                            <th>Примечания</th>
                         </tr>
                     </thead>
                     <tbody>
