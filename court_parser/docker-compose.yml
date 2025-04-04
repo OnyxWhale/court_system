@@ -1,58 +1,73 @@
 services:
   parser_db:
     image: postgres:16
-    environment:
-      POSTGRES_DB: parser_db
-      POSTGRES_USER: parser_user
-      POSTGRES_PASSWORD: parser_password
+    env_file:
+      - .env
     volumes:
       - parser_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - court_network
 
   parser_redis:
     image: redis:7.2
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - court_network
 
   parser_app:
     build: .
-    command: >
-      sh -c "sleep 10 && 
-             python manage.py makemigrations &&
-             python manage.py migrate django_celery_beat &&
-             python manage.py migrate &&
-             gunicorn --bind 0.0.0.0:8001 court_parser.wsgi:application"
+    env_file:
+      - .env
+    command: python manage.py runserver 0.0.0.0:8001
     volumes:
+      - .:/app
       - ./logs:/app/logs
     depends_on:
-      - parser_db
-      - parser_redis
+      parser_db:
+        condition: service_healthy
+      parser_redis:
+        condition: service_healthy
     networks:
       - court_network
 
   parser_celery:
     build: .
-    command: >
-      sh -c "sleep 10 && 
-             celery -A court_parser.celery worker --loglevel=info"
-    volumes:
-      - ./logs:/app/logs
-    depends_on:
-      - parser_db
-      - parser_redis
-    networks:
-      - court_network
-      
-  parser_beat:
-    build: .
-    command: celery -A court_parser beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - .env
+    command: celery -A court_parser worker -l INFO
     volumes:
       - .:/app
+      - ./logs:/app/logs
     depends_on:
-      - parser_redis
-      - parser_db
-      - parser_celery
+      parser_db:
+        condition: service_healthy
+      parser_redis:
+        condition: service_healthy
+    networks:
+      - court_network
+
+  parser_beat:
+    build: .
+    env_file:
+      - .env
+    command: celery -A court_parser beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    depends_on:
+      parser_db:
+        condition: service_healthy
+      parser_redis:
+        condition: service_healthy
     networks:
       - court_network
 

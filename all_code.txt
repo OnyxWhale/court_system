@@ -113,6 +113,7 @@ celery==5.4.0
 django-celery-beat==2.7.0
 redis==5.0.8
 django-redis==5.4.0
+pytz
 ----- File: D:\Development\court_system\court_datasets\court_datasets\__init__.py -----
 ----- File: D:\Development\court_system\court_datasets\court_datasets\asgi.py -----
 """
@@ -515,6 +516,7 @@ from django.db.utils import OperationalError
 from .tasks import update_claims_data
 from django.core.cache import cache
 from celery.exceptions import OperationalError as CeleryOperationalError
+from datetime import datetime, timedelta
 
 class DatasetsListView(ListView):
     model = ForumThread
@@ -534,21 +536,97 @@ class DatasetsListView(ListView):
         context = super().get_context_data(**kwargs)
         claims_data = cache.get("claims_data")
         if not claims_data:
+            print("Кэш пуст, загружаем данные напрямую.")
+            claims_data = []
             try:
-                update_claims_data.delay()
-                print("Задача отправлена в Celery, данные пока недоступны.")
-            except CeleryOperationalError as e:
-                print(f"Ошибка Celery: {e}. Используем прямую обработку данных.")
-                claims_data = []
-                for thread in self.get_queryset():  # Порядок из get_queryset сохраняется
+                for thread in self.get_queryset():
                     claim_data = get_claim_data(thread)
                     note = ClaimNote.objects.filter(thread_id=thread.id).first()
                     claim_data["note"] = note.note if note else ""
                     claim_data["thread_id"] = thread.id
                     claims_data.append(claim_data)
                 cache.set("claims_data", claims_data, timeout=3600)
-        context["claims"] = claims_data
+            except Exception as e:
+                print(f"Ошибка при загрузке данных: {e}")
+                claims_data = []
+            try:
+                update_claims_data.delay()
+                print("Задача на обновление кэша отправлена в Celery.")
+            except CeleryOperationalError as e:
+                print(f"Ошибка Celery: {e}")
+
+        # Получение фильтров из GET-параметров
+        title_filter = self.request.GET.get("title", "").strip()
+        date_from = self.request.GET.get("date_from")
+        date_to = self.request.GET.get("date_to")
+        prefix_filter = self.request.GET.get("prefix")
+        judge_filter = self.request.GET.get("judge", "").strip()
+        note_filter = self.request.GET.get("note")
+        urgent_filter = self.request.GET.get("urgent")  # Новый фильтр "Срочное"
+
+        # Фильтрация данных
+        filtered_data = claims_data or []
+        if title_filter:
+            filtered_data = [claim for claim in filtered_data if title_filter.lower() in claim["title"].lower()]
+        if date_from:
+            try:
+                date_from_dt = datetime.strptime(date_from, "%Y-%m-%d")
+                filtered_data = [claim for claim in filtered_data if claim["created_at"].replace(tzinfo=None) >= date_from_dt]
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_dt = datetime.strptime(date_to, "%Y-%m-%d")
+                filtered_data = [claim for claim in filtered_data if claim["created_at"].replace(tzinfo=None) <= date_to_dt]
+            except ValueError:
+                pass
+        if prefix_filter:
+            filtered_data = [claim for claim in filtered_data if claim["prefix"] == prefix_filter]
+        if judge_filter:
+            filtered_data = [claim for claim in filtered_data if judge_filter.lower() in claim["leading_judges"].lower()]
+        if note_filter == "with":
+            filtered_data = [claim for claim in filtered_data if claim["note"]]
+        elif note_filter == "without":
+            filtered_data = [claim for claim in filtered_data if not claim["note"]]
+        if urgent_filter == "true":
+            filtered_data = [
+                claim for claim in filtered_data
+                if (
+                    (claim["court_time"] and self.parse_court_time(claim["court_time"]) > timedelta(days=7) and
+                     claim["prefix"] in ["На рассмотрении", "Нет"])
+                ) or (not claim["first_response_time"] and not claim["leading_judges"])
+            ]
+
+        # Получение уникальных судей
+        judges = sorted(set(claim["leading_judges"] for claim in claims_data if claim["leading_judges"]))
+
+        # Проверка необходимости пагинации
+        show_pagination = len(filtered_data) > self.paginate_by
+
+        # Передача данных в контекст
+        context["claims"] = filtered_data
+        context["filters"] = {
+            "title": title_filter,
+            "date_from": date_from,
+            "date_to": date_to,
+            "prefix": prefix_filter,
+            "judge": judge_filter,
+            "note": note_filter,
+            "urgent": urgent_filter,
+        }
+        context["judges"] = judges
+        context["show_pagination"] = show_pagination  # Новый флаг для пагинации
         return context
+
+    def parse_court_time(self, court_time_str):
+        """Парсит строку времени судопроизводства в timedelta."""
+        if not court_time_str or court_time_str == "—":
+            return timedelta(days=0)
+        try:
+            days = int(court_time_str.split()[0])
+            return timedelta(days=days)
+        except (ValueError, IndexError):
+            return timedelta(days=0)
 
 def update_note(request):
     if request.method == "POST":
@@ -600,6 +678,56 @@ def update_note(request):
 {% block content %}
     <section class="section">
         <h1 class="section__title">Наборы данных</h1>
+        <form method="get" class="filter-form">
+            <div class="filter-box">
+                <div class="filter-box__filters">
+                    <div class="form__group">
+                            <label for="title" class="form__label">Название:</label>
+                            <input type="text" id="title" name="title" value="{{ filters.title }}" class="form__input" oninput="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="date_from" class="form__label">Дата от:</label>
+                            <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="date_to" class="form__label">Дата до:</label>
+                            <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="prefix" class="form__label">Префикс:</label>
+                            <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
+                                <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
+                                <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
+                                <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
+                                <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
+                                <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="judge" class="form__label">Судья:</label>
+                            <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
+                                {% for judge in judges %}
+                                    <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="note" class="form__label">Примечание:</label>
+                            <select id="note" name="note" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.note %}selected{% endif %}>Все</option>
+                                <option value="with" {% if filters.note == "with" %}selected{% endif %}>С примечанием</option>
+                                <option value="without" {% if filters.note == "without" %}selected{% endif %}>Без примечания</option>
+                            </select>
+                    </div>
+                </div>
+                <div class="filter-box__buttons">
+                    <button type="submit" name="urgent" value="true" class="button button--urgent">Срочное</button>
+                    <a href="{% url 'datasets:datasets_list' %}" class="button button--secondary">Сбросить</a>
+                </div>
+            </div>
+        </form>
         <div class="message-list">
             <div class="message-block">
                 <table class="datasets-table">
@@ -608,11 +736,10 @@ def update_note(request):
                             <th>Исковое заявление</th>
                             <th>Дата подачи</th>
                             <th>Первый ответ суда</th>
-                            <th>Время судопроизводства</th>
+                            <th>Судопроизводство</th>
                             <th>Префикс</th>
-                            <th>Текущий статус</th>
                             <th>Ведущий судья</th>
-                            <th>Примечание</th>
+                            <th>Примечания</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -620,25 +747,24 @@ def update_note(request):
                             <tr>
                                 <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
                                 <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
-                                <td>{{ claim.first_response_time }}</td>
-                                <td>{{ claim.court_time }}</td>
+                                <td>{{ claim.first_response_time|default:"—" }}</td>
+                                <td>{{ claim.court_time|default:"—" }}</td>
                                 <td>{{ claim.prefix }}</td>
-                                <td>{{ claim.status }}</td>
-                                <td>{{ claim.leading_judges }}</td>
+                                <td>{{ claim.leading_judges|default:"—" }}</td>
                                 <td>
                                     <textarea class="form__input" data-thread-id="{{ claim.thread_id }}" onblur="saveNote(this)">{{ claim.note }}</textarea>
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="8" class="empty-text">Данные отсутствуют</td>
+                                <td colspan="7" class="empty-text">Данные отсутствуют</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-        {% if is_paginated %}
+        {% if show_pagination %}
             <div class="pagination">
                 <span class="pagination__info">
                     {% if page_obj.has_previous %}
@@ -663,14 +789,19 @@ def update_note(request):
                     "Content-Type": "application/x-www-form-urlencoded",
                     "X-CSRFToken": "{{ csrf_token }}",
                 },
-                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText)
+                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText) // Исправлено ¬e на note
             })
             .then(response => response.json())
             .then(data => {
-                if (!data.success) console.error("Ошибка:", data.error);
-            });
+                if (!data.success) {
+                    console.error("Ошибка:", data.error);
+                } else {
+                    console.log("Примечание сохранено:", noteText);
+                }
+            })
+            .catch(error => console.error("Ошибка запроса:", error));
         }
-        </script>
+    </script>
 {% endblock %}
 ----- File: D:\Development\court_system\court_judges\docker-compose.yml -----
 services:
@@ -2989,7 +3120,7 @@ input[type="datetime-local"]:focus {
 }
 
 .datasets-table th {
-    padding: 0.5rem 1.5rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
+    padding: 0.5rem 2.3rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
     text-align: center;
     color: var(--accent-color); /* Цвет текста как у заголовков */
     font-weight: bold;
@@ -3065,7 +3196,7 @@ input[type="datetime-local"]:focus {
 
 .datasets-table .form__input:focus {
     background: #3a3a3a; /* Цвет фона при фокусе */
-    outline: 2px solid var(--accent-color); /* Обводка при фокусе */
+/*  outline: 2px solid var(--accent-color); /* Обводка при фокусе */
 }
 
 /* Адаптивность */
@@ -3104,5 +3235,124 @@ input[type="datetime-local"]:focus {
 
     .datasets-table tbody tr:hover {
         transform: none; /* Отключаем подъём на маленьких экранах */
+    }
+}
+
+/* Форма фильтров */
+.filter-form {
+    margin-bottom: 1.25rem; /* 20px */
+}
+
+.filter-box {
+    display: flex;
+    justify-content: space-between; /* Фильтры слева, кнопки справа */
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.625rem; /* 10px */
+    padding: 1.25rem; /* 20px */
+    background: var(--primary-bg); /* #232323 */
+    border: 2px solid var(--secondary-bg); /* #2e2e2e */
+    border-radius: 0.625rem; /* 10px */
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    align-items: center
+}
+
+.filter-box__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem; /* 10px */
+    justify-content: flex-start;
+}
+
+.filter-box__buttons {
+    display: flex;
+    gap: 0.625rem; /* 10px */
+    justify-content: flex-end;
+}
+
+.filter-box .form__group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 10rem; /* 160px */
+}
+
+.filter-box .form__input,
+.filter-box input[type="date"],
+.filter-box select {
+    width: 100%;
+    min-width: 8rem; /* 128px */
+    padding: 0.625rem; /* 10px */
+    background: var(--secondary-bg); /* #2e2e2e */
+    color: var(--text-color); /* #e0e0e0 */
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    font-size: 1rem;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.filter-box .form__input:focus,
+.filter-box input[type="date"]:focus,
+.filter-box select:focus {
+    background: #3a3a3a;
+}
+
+.filter-box .form__label {
+    font-size: 1rem;
+    color: var(--text-color); /* #e0e0e0 */
+    margin-bottom: 0.3125rem; /* 5px */
+}
+
+/* Таблица данных - обновление стилей для textarea */
+.datasets-table td:has(.form__input) {
+    padding: 0;
+    display: flex;
+    align-items: stretch; /* Растягиваем содержимое по высоте */
+    justify-content: center;
+}
+
+.datasets-table .form__input {
+    width: 100%;
+    height: 100%; /* Полная высота ячейки */
+    min-height: 1.5rem; /* Минимальная высота */
+    resize: vertical;
+    text-align: left;
+    background: var(--secondary-bg);
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    color: var(--text-color);
+    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
+    margin: 0;
+    box-sizing: border-box;
+    transition: var(--transition);
+}
+
+.datasets-table .form__input:focus {
+    background: #3a3a3a;
+    outline: none; /* Убираем стандартную обводку */
+}
+
+/* Адаптивность */
+@media (max-width: 48rem) { /* 768px */
+    .filter-box {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .filter-box__filters {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .filter-box__buttons {
+        justify-content: center;
+        margin-top: 0.625rem; /* 10px */
+    }
+    
+    .filter-box .form__group {
+        width: 100%;
+        max-width: 15rem; /* 240px */
     }
 }

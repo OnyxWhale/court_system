@@ -1,18 +1,13 @@
 import os
 from pathlib import Path
 
-#BASE_DIR = Path(__file__).resolve().parent.parent
-#SECRET_KEY = "django-insecure-your-secret-key-here"
-DEBUG = True
-#ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-#CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
-
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-ваш_секретный_ключ_здесь")
-#DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
 
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+
+DEBUG = True
+
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -57,9 +52,9 @@ WSGI_APPLICATION = "court_judges.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "judges_db",
-        "USER": "judges_user",
-        "PASSWORD": "judges_password",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
         "HOST": "judges_db",
         "PORT": "5432",
     }
@@ -72,16 +67,14 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "ru-ru"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "static"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Пароль для подтверждения действий
-ACTION_CONFIRMATION_PASSWORD = "123"
+ACTION_CONFIRMATION_PASSWORD = os.getenv("ACTION_CONFIRMATION_PASSWORD")

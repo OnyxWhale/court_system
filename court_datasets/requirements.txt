@@ -3,6 +3,7 @@ psycopg2-binary==2.9.9
 gunicorn==23.0.0
 celery==5.4.0
 django-celery-beat==2.7.0
+django-celery-results==2.5.1
 redis==5.0.8
 django-redis==5.4.0
 pytz

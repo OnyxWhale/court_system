@@ -157,14 +157,7 @@ body {
     padding: 1.25rem; /* 20px */
     box-shadow: var(--shadow);
     border: 2px solid var(--secondary-bg);
-/*    transition: var(--transition);*/
-/*    will-change: transform;*/
 }
-/*
-.message-block:hover {
-    background: var(--secondary-bg);
-    border-color: var(--accent-color);
-}*/
 
 .message__header {
     font-size: 1.1rem;

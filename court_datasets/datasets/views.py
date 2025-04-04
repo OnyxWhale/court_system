@@ -8,6 +8,7 @@ from .tasks import update_claims_data
 from django.core.cache import cache
 from celery.exceptions import OperationalError as CeleryOperationalError
 from datetime import datetime, timedelta
+from django.views.decorators.csrf import csrf_protect
 
 class DatasetsListView(ListView):
     model = ForumThread
@@ -119,6 +120,7 @@ class DatasetsListView(ListView):
         except (ValueError, IndexError):
             return timedelta(days=0)
 
+@csrf_protect
 def update_note(request):
     if request.method == "POST":
         thread_id = request.POST.get("thread_id")

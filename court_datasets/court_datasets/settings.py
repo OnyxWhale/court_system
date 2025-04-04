@@ -2,11 +2,12 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-your-secret-key-here")
-#DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+
 DEBUG = True
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
+
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -16,6 +17,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "datasets.apps.DatasetsConfig",
+    "django_celery_results",
 ]
 
 MIDDLEWARE = [
@@ -51,25 +53,25 @@ WSGI_APPLICATION = "court_datasets.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "datasets_db",
-        "USER": "datasets_user",
-        "PASSWORD": "datasets_password",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
         "HOST": "datasets_db",
         "PORT": "5432",
     },
     "parser_db": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "parser_db",
-        "USER": "parser_user",
-        "PASSWORD": "parser_password",
+        "NAME": os.getenv("PARSER_POSTGRES_DB", "parser_db"),
+        "USER": os.getenv("PARSER_POSTGRES_USER", "parser_user"),
+        "PASSWORD": os.getenv("PARSER_POSTGRES_PASSWORD", "parser_password"),
         "HOST": "parser_db",
         "PORT": "5432",
     },
     "judges_db": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "judges_db",
-        "USER": "judges_user",
-        "PASSWORD": "judges_password",
+        "NAME": os.getenv("JUDGES_POSTGRES_DB", "judges_db"),
+        "USER": os.getenv("JUDGES_POSTGRES_USER", "judges_user"),
+        "PASSWORD": os.getenv("JUDGES_POSTGRES_PASSWORD", "judges_password"),
         "HOST": "judges_db",
         "PORT": "5432",
     },
@@ -84,28 +86,29 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "ru-ru"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "static"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CELERY_BROKER_URL = "redis://datasets_redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://datasets_redis:6379/0"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
+REDIS_HOST = "datasets_redis"
+REDIS_PORT = "6379"
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://datasets_redis:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
+
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"

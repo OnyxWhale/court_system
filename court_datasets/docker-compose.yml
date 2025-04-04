@@ -1,49 +1,66 @@
 services:
   datasets_db:
     image: postgres:16
-    environment:
-      POSTGRES_DB: datasets_db
-      POSTGRES_USER: datasets_user
-      POSTGRES_PASSWORD: datasets_password
+    env_file:
+      - .env
     volumes:
       - datasets_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - court_network
 
   datasets_redis:
     image: redis:7.2
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - court_network
 
   datasets_app:
     build: .
+    env_file:
+      - .env
     command: >
       sh -c "python manage.py makemigrations &&
-             python manage.py makemigrations datasets &&
-             python manage.py migrate datasets &&
              python manage.py migrate &&
-             gunicorn --bind 0.0.0.0:8003 court_datasets.wsgi:application"
+             python manage.py runserver 0.0.0.0:8003"
     volumes:
+      - .:/app
       - ./logs:/app/logs
     depends_on:
-      - datasets_db
-      - datasets_redis
+      datasets_db:
+        condition: service_healthy
+      datasets_redis:
+        condition: service_healthy
     networks:
       - court_network
 
   datasets_celery:
     build: .
-    command: >
-      sh -c "celery -A court_datasets.celery worker --loglevel=info"
+    env_file:
+      - .env
+    command: celery -A court_datasets worker -l INFO
     volumes:
+      - .:/app
       - ./logs:/app/logs
     depends_on:
-      - datasets_db
-      - datasets_redis
+      datasets_db:
+        condition: service_healthy
+      datasets_redis:
+        condition: service_healthy
     networks:
       - court_network
+
 volumes:
   datasets_db_data:
+
 networks:
   court_network:
     external: true
