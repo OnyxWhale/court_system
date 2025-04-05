@@ -88,7 +88,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "ru-ru"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
@@ -103,6 +103,7 @@ CELERY_RESULT_BACKEND = f"redis://:{os.getenv('REDIS_PASSWORD')}@datasets_redis:
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Europe/Moscow"
 
 CACHES = {
     "default": {
