@@ -1,20 +1,92 @@
+----- File: D:\Development\court_system\.gitignore -----
+__pycache__/
+venv/
+logs/
+*.dockerignore
+----- File: D:\Development\court_system\all_code.txt -----
+----- File: D:\Development\court_system\.gitignore -----
+__pycache__/
+venv/
+logs/
+*.dockerignore
+----- File: D:\Development\court_system\script_all.ps1 -----
+# Укажите путь к вашему проекту и папке, которую нужно исключить
+$projectPath = "D:\Development\court_system"
+$excludePath = "D:\Development\court_system\venv"
+$outputFile = "D:\Development\court_system\all_code.txt"
+
+# Очистка или создание выходного файла
+Remove-Item -Path $outputFile -Force -ErrorAction SilentlyContinue
+New-Item -Path $outputFile -ItemType File -Force | Out-Null
+
+# Рекурсивный поиск всех файлов в проекте, исключая определенную папку
+Get-ChildItem -Path $projectPath -Recurse -File | Where-Object {
+    $_.FullName -notlike "$excludePath*"
+} | ForEach-Object {
+    # Чтение содержимого файлов и добавление в выходной файл
+    $content = Get-Content -Path $_.FullName -ErrorAction SilentlyContinue
+    Add-Content -Path $outputFile -Value "----- File: $($_.FullName) -----"
+    Add-Content -Path $outputFile -Value $content
+}
+----- File: D:\Development\court_system\court_datasets\.dockerignore -----
+logs/
+__pycache__/
+.env
+docker-compose.yml
+----- File: D:\Development\court_system\court_datasets\.env -----
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1
+POSTGRES_DB=datasets_db
+POSTGRES_USER=datasets_user
+POSTGRES_PASSWORD=secure-password
+POSTGRES_HOST=datasets_db
+POSTGRES_PORT=5432
+PARSER_DB_NAME=parser_db
+PARSER_DB_USER=parser_user
+PARSER_DB_PASSWORD=secure-password
+PARSER_DB_HOST=parser_db
+PARSER_DB_PORT=5432
+JUDGES_DB_NAME=judges_db
+JUDGES_DB_USER=judges_user
+JUDGES_DB_PASSWORD=secure-password
+JUDGES_DB_HOST=judges_db
+JUDGES_DB_PORT=5432
+REDIS_PASSWORD=redis-pass
 ----- File: D:\Development\court_system\court_datasets\docker-compose.yml -----
 services:
   datasets_db:
     image: postgres:16
     environment:
-      POSTGRES_DB: datasets_db
-      POSTGRES_USER: datasets_user
-      POSTGRES_PASSWORD: datasets_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - datasets_db_data:/var/lib/postgresql/data
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   datasets_redis:
     image: redis:7.2
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   datasets_app:
     build: .
@@ -27,10 +99,20 @@ services:
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - datasets_db
-      - datasets_redis
+      datasets_db:
+        condition: service_healthy
+      datasets_redis:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/datasets/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
 
   datasets_celery:
     build: .
@@ -39,12 +121,24 @@ services:
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - datasets_db
-      - datasets_redis
+      datasets_db:
+        condition: service_healthy
+      datasets_redis:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "celery", "-A", "court_datasets.celery", "inspect", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
+
 volumes:
   datasets_db_data:
+
 networks:
   court_network:
     external: true
@@ -52,16 +146,21 @@ networks:
 FROM python:3.12-slim AS builder
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir -r requirements.txt
 
 FROM python:3.12-slim
-RUN apt-get update && apt-get install -y curl
 WORKDIR /app
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
-COPY --from=builder /usr/local/bin /usr/local/bin
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /root/.local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=builder /root/.local/bin/ /usr/local/bin/
 COPY . .
-ENV PYTHONUNBUFFERED=1
-CMD ["gunicorn", "--bind", "0.0.0.0:8003", "court_datasets.wsgi:application"]
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+RUN useradd -m -r appuser && chown -R appuser:appuser /app
+USER appuser
 ----- File: D:\Development\court_system\court_datasets\manage.py -----
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
@@ -94,6 +193,7 @@ django-celery-beat==2.7.0
 redis==5.0.8
 django-redis==5.4.0
 pytz
+python-dotenv==1.1.0
 ----- File: D:\Development\court_system\court_datasets\court_datasets\__init__.py -----
 ----- File: D:\Development\court_system\court_datasets\court_datasets\asgi.py -----
 """
@@ -154,11 +254,14 @@ class DBRouter:
 ----- File: D:\Development\court_system\court_datasets\court_datasets\settings.py -----
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
+# Загрузка переменных из .env
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-your-secret-key-here")
-#DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
-DEBUG = True
+load_dotenv(BASE_DIR / ".env")
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-default-key")
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
 
@@ -205,27 +308,27 @@ WSGI_APPLICATION = "court_datasets.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "datasets_db",
-        "USER": "datasets_user",
-        "PASSWORD": "datasets_password",
-        "HOST": "datasets_db",
-        "PORT": "5432",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),
+        "PORT": os.getenv("POSTGRES_PORT"),
     },
     "parser_db": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "parser_db",
-        "USER": "parser_user",
-        "PASSWORD": "parser_password",
-        "HOST": "parser_db",
-        "PORT": "5432",
+        "NAME": os.getenv("PARSER_DB_NAME"),
+        "USER": os.getenv("PARSER_DB_USER"),
+        "PASSWORD": os.getenv("PARSER_DB_PASSWORD"),
+        "HOST": os.getenv("PARSER_DB_HOST"),
+        "PORT": os.getenv("PARSER_DB_PORT"),
     },
     "judges_db": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "judges_db",
-        "USER": "judges_user",
-        "PASSWORD": "judges_password",
-        "HOST": "judges_db",
-        "PORT": "5432",
+        "NAME": os.getenv("JUDGES_DB_NAME"),
+        "USER": os.getenv("JUDGES_DB_USER"),
+        "PASSWORD": os.getenv("JUDGES_DB_PASSWORD"),
+        "HOST": os.getenv("JUDGES_DB_HOST"),
+        "PORT": os.getenv("JUDGES_DB_PORT"),
     },
 }
 
@@ -239,7 +342,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "ru-ru"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
@@ -249,15 +352,17 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CELERY_BROKER_URL = "redis://datasets_redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://datasets_redis:6379/0"
+CELERY_BROKER_URL = f"redis://:{os.getenv('REDIS_PASSWORD')}@datasets_redis:6379/0"
+CELERY_RESULT_BACKEND = f"redis://:{os.getenv('REDIS_PASSWORD')}@datasets_redis:6379/0"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Europe/Moscow"
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://datasets_redis:6379/1",
+        "LOCATION": f"redis://:{os.getenv('REDIS_PASSWORD')}@datasets_redis:6379/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
@@ -783,18 +888,41 @@ def update_note(request):
         }
     </script>
 {% endblock %}
+----- File: D:\Development\court_system\court_judges\.dockerignore -----
+logs/
+__pycache__/
+.env
+docker-compose.yml
+----- File: D:\Development\court_system\court_judges\.env -----
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1
+POSTGRES_DB=judges_db
+POSTGRES_USER=judges_user
+POSTGRES_PASSWORD=secure-password
+POSTGRES_HOST=judges_db
+POSTGRES_PORT=5432
+ACTION_CONFIRMATION_PASSWORD=123
 ----- File: D:\Development\court_system\court_judges\docker-compose.yml -----
 services:
   judges_db:
     image: postgres:16
     environment:
-      POSTGRES_DB: judges_db
-      POSTGRES_USER: judges_user
-      POSTGRES_PASSWORD: judges_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - judges_db_data:/var/lib/postgresql/data
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   judges_app:
     build: .
@@ -805,9 +933,18 @@ services:
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - judges_db
+      judges_db:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/judges/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
 
 volumes:
   judges_db_data:
@@ -819,16 +956,21 @@ networks:
 FROM python:3.12-slim AS builder
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir -r requirements.txt
 
 FROM python:3.12-slim
-RUN apt-get update && apt-get install -y curl
 WORKDIR /app
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
-COPY --from=builder /usr/local/bin /usr/local/bin
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /root/.local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=builder /root/.local/bin/ /usr/local/bin/
 COPY . .
-ENV PYTHONUNBUFFERED=1
-CMD ["gunicorn", "--bind", "0.0.0.0:8002", "court_judges.wsgi:application"]
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+RUN useradd -m -r appuser && chown -R appuser:appuser /app
+USER appuser
 ----- File: D:\Development\court_system\court_judges\manage.py -----
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
@@ -856,6 +998,7 @@ if __name__ == '__main__':
 Django==5.1.7
 psycopg2-binary==2.9.9
 gunicorn==23.0.0
+python-dotenv==1.1.0
 ----- File: D:\Development\court_system\court_judges\court_judges\__init__.py -----
 ----- File: D:\Development\court_system\court_judges\court_judges\asgi.py -----
 """
@@ -877,19 +1020,16 @@ application = get_asgi_application()
 ----- File: D:\Development\court_system\court_judges\court_judges\settings.py -----
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
-#BASE_DIR = Path(__file__).resolve().parent.parent
-#SECRET_KEY = "django-insecure-your-secret-key-here"
-DEBUG = True
-#ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-#CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
-
+# Загрузка переменных из .env
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-ваш_секретный_ключ_здесь")
-#DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+load_dotenv(BASE_DIR / ".env")
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-default-key")
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
-
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -934,11 +1074,11 @@ WSGI_APPLICATION = "court_judges.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "judges_db",
-        "USER": "judges_user",
-        "PASSWORD": "judges_password",
-        "HOST": "judges_db",
-        "PORT": "5432",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),
+        "PORT": os.getenv("POSTGRES_PORT"),
     }
 }
 
@@ -950,7 +1090,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "ru-ru"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
@@ -960,8 +1100,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Пароль для подтверждения действий
-ACTION_CONFIRMATION_PASSWORD = "123"
+ACTION_CONFIRMATION_PASSWORD = os.getenv("ACTION_CONFIRMATION_PASSWORD", "123")
 ----- File: D:\Development\court_system\court_judges\court_judges\urls.py -----
 from django.urls import path, include
 
@@ -1519,64 +1658,127 @@ def add_class(field, css_class):
         </form>
     </section>
 {% endblock %}
+----- File: D:\Development\court_system\court_parser\.dockerignore -----
+logs/
+__pycache__/
+.env
+docker-compose.yml
+----- File: D:\Development\court_system\court_parser\.env -----
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1
+POSTGRES_DB=parser_db
+POSTGRES_USER=parser_user
+POSTGRES_PASSWORD=secure-password
+POSTGRES_HOST=parser_db
+POSTGRES_PORT=5432
+REDIS_PASSWORD=redis-pass
+FORUM_BASE_URL=https://forum.gta5rp.com/forums/federalnyi-sud.1745/
 ----- File: D:\Development\court_system\court_parser\docker-compose.yml -----
 services:
   parser_db:
     image: postgres:16
     environment:
-      POSTGRES_DB: parser_db
-      POSTGRES_USER: parser_user
-      POSTGRES_PASSWORD: parser_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - parser_db_data:/var/lib/postgresql/data
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   parser_redis:
     image: redis:7.2
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   parser_app:
     build: .
     command: >
-      sh -c "sleep 10 && 
-             python manage.py makemigrations &&
+      sh -c "python manage.py makemigrations &&
              python manage.py migrate django_celery_beat &&
              python manage.py migrate &&
              gunicorn --bind 0.0.0.0:8001 court_parser.wsgi:application"
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - parser_db
-      - parser_redis
+      parser_db:
+        condition: service_healthy
+      parser_redis:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/parser/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
 
   parser_celery:
     build: .
     command: >
-      sh -c "sleep 10 && 
-             celery -A court_parser.celery worker --loglevel=info"
+      sh -c "celery -A court_parser.celery worker --loglevel=info"
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - parser_db
-      - parser_redis
+      parser_db:
+        condition: service_healthy
+      parser_redis:
+        condition: service_healthy
     networks:
       - court_network
-      
+    healthcheck:
+      test: ["CMD", "celery", "-A", "court_parser.celery", "inspect", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
+
   parser_beat:
     build: .
-    command: celery -A court_parser beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: >
+      sh -c "celery -A court_parser beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     volumes:
       - .:/app
     depends_on:
-      - parser_redis
-      - parser_db
-      - parser_celery
+      parser_redis:
+        condition: service_healthy
+      parser_db:
+        condition: service_healthy
+      parser_celery:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "celery", "-A", "court_parser", "beat", "--pidfile=/tmp/celerybeat.pid", "--dry-run"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
 
 volumes:
   parser_db_data:
@@ -1588,21 +1790,21 @@ networks:
 FROM python:3.12-slim AS builder
 WORKDIR /app
 COPY requirements.txt .
-# Устанавливаем зависимости (включая исполняемые файлы в /usr/local/bin)
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir -r requirements.txt
 
 FROM python:3.12-slim
-RUN apt-get update && apt-get install -y curl
 WORKDIR /app
-# Копируем библиотеки
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
-# Копируем исполняемые файлы (включая gunicorn) <--- ДОБАВЛЕНО
-COPY --from=builder /usr/local/bin /usr/local/bin
-# Копируем код приложения
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /root/.local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=builder /root/.local/bin/ /usr/local/bin/
 COPY . .
-ENV PYTHONUNBUFFERED=1
-# CMD теперь не так важен, так как переопределяется в docker-compose, но оставим для консистентности
-CMD ["gunicorn", "--bind", "0.0.0.0:8001", "court_parser.wsgi:application"]
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+RUN useradd -m -r appuser && chown -R appuser:appuser /app
+USER appuser
 ----- File: D:\Development\court_system\court_parser\manage.py -----
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
@@ -1635,6 +1837,7 @@ celery==5.4.0
 django-celery-beat==2.7.0
 redis==5.0.8
 gunicorn==23.0.0
+python-dotenv==1.1.0
 ----- File: D:\Development\court_system\court_parser\court_parser\__init__.py -----
 from .celery import app as celery_app
 
@@ -1667,9 +1870,13 @@ app.autodiscover_tasks()
 ----- File: D:\Development\court_system\court_parser\court_parser\settings.py -----
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
+# Загрузка переменных из .env
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-ваш_секретный_ключ_здесь")
+load_dotenv(BASE_DIR / ".env")
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-default-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
@@ -1720,11 +1927,11 @@ WSGI_APPLICATION = "court_parser.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "parser_db",
-        "USER": "parser_user",
-        "PASSWORD": "parser_password",
-        "HOST": "parser_db",
-        "PORT": "5432",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),
+        "PORT": os.getenv("POSTGRES_PORT"),
     }
 }
 
@@ -1736,7 +1943,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "ru-ru"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
@@ -1749,13 +1956,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CELERY_BROKER_URL = "redis://parser_redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://parser_redis:6379/0"
+CELERY_BROKER_URL = f"redis://:{os.getenv('REDIS_PASSWORD')}@parser_redis:6379/0"
+CELERY_RESULT_BACKEND = f"redis://:{os.getenv('REDIS_PASSWORD')}@parser_redis:6379/0"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_BEAT_SCHEDULE = {}
+CELERY_TIMEZONE = "Europe/Moscow"
 ----- File: D:\Development\court_system\court_parser\court_parser\urls.py -----
 from django.contrib import admin
 from django.urls import path, include
@@ -2422,18 +2630,25 @@ def parser_status(request) -> JsonResponse:
         {% endif %}
     </section>
 {% endblock %}
+----- File: D:\Development\court_system\court_proxy\.dockerignore -----
+logs/
+.env
+docker-compose.yml
+----- File: D:\Development\court_system\court_proxy\.env -----
+NGINX_LOG_LEVEL=info
 ----- File: D:\Development\court_system\court_proxy\docker-compose.yml -----
 services:
   proxy:
     build: .
     ports:
       - "1408:1408"
-      - "443:443"
     volumes:
       - ./static:/app/static
       - ./logs:/var/log/nginx
     networks:
       - court_network
+    env_file:
+      - .env
 
 networks:
   court_network:
@@ -2441,22 +2656,10 @@ networks:
 ----- File: D:\Development\court_system\court_proxy\Dockerfile -----
 FROM nginx:latest
 
-# Установка OpenSSL для генерации сертификатов
-RUN apt-get update && apt-get install -y openssl
-
-# Генерация самоподписанного сертификата
-RUN mkdir -p /etc/nginx/ssl && \
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/selfsigned.key \
-    -out /etc/nginx/ssl/selfsigned.crt \
-    -subj "/C=RU/ST=State/L=City/O=Organization/CN=localhost"
-
-# Копирование конфигурации и статики
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY static/ /app/static/
 
-# Установка прав
-RUN chmod -R 755 /app/static
+RUN chmod -R 644 /app/static/ && find /app/static/ -type d -exec chmod 755 {} \;
 ----- File: D:\Development\court_system\court_proxy\nginx.conf -----
 server {
     listen 1408;
@@ -2531,82 +2734,6 @@ server {
         root /app/static;
     }
 }
-
-# HTTPS сервер (с самоподписанным сертификатом)
-server {
-    listen 443 ssl;
-    server_name localhost;
-    proxy_intercept_errors on;
-
-    ssl_certificate /etc/nginx/ssl/selfsigned.crt;
-    ssl_certificate_key /etc/nginx/ssl/selfsigned.key;
-
-    access_log /var/log/nginx/access_ssl.log;
-    error_log /var/log/nginx/error_ssl.log;
-
-    # Разрешение имён через Docker DNS
-    resolver 127.0.0.11 valid=30s;
-
-    # Переменные для бэкендов
-    set $parser_backend "http://parser_app:8001";
-    set $judges_backend "http://judges_app:8002";
-    set $datasets_backend "http://datasets_app:8003";
-    set $stats_backend "http://stats_app:8004";
-    set $admin_backend "http://admin_app:8005";
-
-    location /static/ {
-        alias /app/static/;
-        expires 1d;
-        add_header Cache-Control "public, max-age=86400";
-    }
-
-    location / {
-        root /app/static;
-        index index.html;
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /parser/ {
-        proxy_pass $parser_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /judges/ {
-        proxy_pass $judges_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /datasets/ {
-        proxy_pass $datasets_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /stats/ {
-        proxy_pass $stats_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /admin/ {
-        proxy_pass $admin_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    error_page 502 503 504 /50x.html;
-
-    location = /50x.html {
-        root /app/static;
-    }
-}
 ----- File: D:\Development\court_system\court_proxy\static\50x.html -----
 <!DOCTYPE html>
 <html lang="ru">
@@ -2675,3 +2802,664 @@ server {
 </body>
 </html>
 ----- File: D:\Development\court_system\court_proxy\static\css\style.css -----
+/* Общие стили (Reset и базовые настройки) */
+:root {
+    --primary-bg: #232323;
+    --secondary-bg: #2e2e2e;
+    --accent-color: #f6d28e;
+    --text-color: #e0e0e0;
+    --shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.4); /* 4px 12px */
+    --transition: all 0.3s;
+    --danger-color: #c03333;
+    --danger-hover: #d53b64;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #181818;
+    color: var(--text-color);
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Контейнеры и Layout */
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 1.25rem; /* 20px */
+    flex: 1;
+}
+
+.section {
+    margin: 0;
+    width: 100%;
+    flex: 1;
+}
+
+/* Типографика */
+.section__title {
+    font-size: 2rem;
+    color: var(--accent-color);
+    text-align: center;
+    margin-bottom: 1.25rem; /* 20px */
+}
+
+.section__subtitle {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    margin: 1.25rem 0; /* 20px */
+    text-align: center;
+}
+
+.card__title {
+    font-size: 1.15rem;
+    color: var(--accent-color);
+    text-align: center;
+    margin-bottom: 0.3125rem; /* 5px */
+}
+
+.card__description {
+    font-size: 1rem;
+    color: #b0b0b0;
+    text-align: center;
+}
+
+/* Шапка */
+.header {
+    background: var(--primary-bg);
+    padding: 1.25rem 0; /* 20px */
+    box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.5); /* 2px 10px */
+    display: flex;
+    align-items: center;
+    min-height: 5rem; /* 80px */
+}
+
+.header__title {
+    color: var(--accent-color);
+    text-align: center;
+    width: 100%;
+}
+
+/* Навигация */
+.nav-bar {
+    display: flex;
+    justify-content: center;
+    gap: 0.9375rem; /* 15px */
+    width: 100%;
+}
+
+.nav-link {
+    background: var(--secondary-bg);
+    border-radius: 0.5rem; /* 8px */
+    padding: 0.75rem 1.5625rem; /* 12px 25px */
+    text-decoration: none;
+    color: var(--text-color);
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    transition: var(--transition);
+    will-change: transform;
+}
+
+.nav-link:hover {
+    background: #3a3a3a;
+    color: var(--accent-color);
+    transform: translateY(-0.1875rem); /* -3px */
+}
+
+/* Карточки */
+.card {
+    background: var(--primary-bg);
+    border-radius: 0.625rem; /* 10px */
+    padding: 1.25rem; /* 20px */
+    box-shadow: var(--shadow);
+    border: 2px solid var(--secondary-bg);
+    transition: var(--transition);
+    text-decoration: none;
+    color: var(--text-color);
+    display: block;
+    will-change: transform;
+}
+
+.card:hover {
+    transform: translateY(-0.3125rem); /* -5px */
+    background: var(--secondary-bg);
+    border-color: var(--accent-color);
+}
+
+/* Сетки */
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.25rem; /* 20px */
+}
+
+.thread-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1.25rem; /* 20px */
+}
+
+.message-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem; /* 20px */
+    margin-bottom: 1.25rem; /* 20px */
+}
+
+/* Сообщения */
+.message-block {
+    background: var(--primary-bg);
+    border-radius: 0.625rem; /* 10px */
+    padding: 1.25rem; /* 20px */
+    box-shadow: var(--shadow);
+    border: 2px solid var(--secondary-bg);
+/*    transition: var(--transition);*/
+/*    will-change: transform;*/
+}
+/*
+.message-block:hover {
+    background: var(--secondary-bg);
+    border-color: var(--accent-color);
+}*/
+
+.message__header {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem; /* 20px */
+    text-align: center;
+}
+
+.message__header strong,
+.message__header span {
+    color: var(--accent-color);
+}
+
+.message__content {
+    font-size: 1rem;
+    color: var(--text-color);
+}
+
+.info-item {
+    font-size: 0.95rem;
+    color: #b0b0b0;
+}
+
+.info-item span {
+    color: var(--text-color);
+}
+
+/* Формы */
+.parser-container {
+    display: flex;
+    justify-content: center;
+}
+
+.parser-card {
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+}
+
+.parser-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem; /* 20px */
+    align-items: center;
+    margin-top: 1.25rem; /* 20px */
+}
+
+.form__group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form__label {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 0.3125rem; /* 5px */
+}
+
+.form__input,
+textarea,
+input[type="datetime-local"] {
+    padding: 0.625rem; /* 10px */
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    background: var(--secondary-bg);
+    color: var(--text-color);
+    font-size: 1rem;
+    width: 12rem; /* 250px */
+    transition: var(--transition);
+    text-align: center;
+    font-weight: bold;
+}
+
+.form__input:focus,
+textarea:focus,
+input[type="datetime-local"]:focus {
+    background: #3a3a3a;
+    outline: none;
+}
+
+.form__buttons {
+    display: flex;
+    gap: 0.625rem; /* 10px */
+    justify-content: center;
+}
+
+/* Кнопки */
+.button {
+    display: inline-block;
+    padding: 0.75rem 1.5625rem; /* 12px 25px */
+    background: var(--accent-color);
+    color: #181818;
+    text-decoration: none;
+    border-radius: 0.5rem; /* 8px */
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    will-change: transform;
+}
+
+.button:hover {
+    background: #e8c074;
+}
+
+.button:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.button--secondary {
+    background: var(--secondary-bg);
+    color: var(--accent-color);
+}
+
+.button--secondary:hover {
+    background: #3a3a3a;
+}
+
+.button--danger {
+    background: var(--danger-color);
+}
+
+.button--danger:hover {
+    background: var(--danger-hover);
+}
+
+/* Статус */
+.status-box {
+    margin-top: 1.25rem; /* 20px */
+    padding: 0.9375rem; /* 15px */
+    background: var(--secondary-bg);
+    border-radius: 0.5rem; /* 8px */
+    box-shadow: inset 0 0.125rem 0.3125rem rgba(0, 0, 0, 0.3); /* 2px 5px */
+}
+
+.status__text {
+    font-size: 1rem;
+    color: var(--accent-color);
+    margin: 0.3125rem 0; /* 5px */
+    text-align: center;
+}
+
+/* Навигационные ссылки */
+.threads-link {
+    display: flex;
+    justify-content: center;
+    margin: 1.25rem 0; /* 20px */
+    gap: 0.625rem; /* 10px */
+}
+
+/* Пагинация */
+.pagination {
+    margin-top: 1.875rem; /* 30px */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.9375rem; /* 15px */
+}
+
+.pagination__info {
+    color: #b0b0b0;
+    font-size: 1rem;
+}
+
+/* Пустое состояние */
+.empty-text {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 1.2rem;
+    color: #b0b0b0;
+    padding: 1.25rem; /* 20px */
+}
+
+/* Модальные окна */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal__content {
+    background: var(--primary-bg);
+    padding: 1.25rem; /* 20px */
+    border-radius: 0.625rem; /* 10px */
+    box-shadow: var(--shadow);
+    width: 25rem; /* 400px */
+    text-align: center;
+}
+
+.modal__title {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    margin-bottom: 0.625rem; /* 10px */
+}
+
+.modal__text {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 0.9375rem; /* 15px */
+}
+
+.modal__buttons {
+    display: flex;
+    gap: 0.625rem; /* 10px */
+    justify-content: center;
+}
+
+/* Ошибки */
+.error-section {
+    text-align: center;
+}
+
+.error-message {
+    font-size: 1.2rem;
+    color: var(--danger-color);
+    margin: 1.25rem 0; /* 20px */
+}
+
+/* Футер */
+.footer {
+    background: var(--primary-bg);
+    padding: 1.25rem; /* 20px */
+    text-align: center;
+    color: #b0b0b0;
+    box-shadow: 0 -0.125rem 0.625rem rgba(0, 0, 0, 0.5); /* -2px 10px */
+    width: 100%;
+}
+
+.footer__text {
+    font-size: 1rem;
+}
+
+/* Таблица данных */
+.datasets-table {
+    width: 100%; /* Таблица занимает всю ширину контейнера */
+    border-collapse: separate; /* Для закруглений и теней */
+    border-spacing: 0; /* Убираем промежутки между ячейками */
+    background: var(--primary-bg); /* Фон как у карточек */
+    border-radius: 0.625rem; /* 10px, как у карточек */
+    box-shadow: var(--shadow); /* Тень как у карточек */
+    overflow: hidden; /* Чтобы закругления работали корректно */
+}
+
+.datasets-table thead {
+    background: var(--secondary-bg); /* Цвет заголовков как у навигации */
+}
+
+.datasets-table th {
+    padding: 0.5rem 2.3rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
+    text-align: center;
+    color: var(--accent-color); /* Цвет текста как у заголовков */
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1rem;
+    border-bottom: 2px solid var(--accent-color); /* Линия под заголовками */
+    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
+    min-width: max-content; /* Ширина ячейки чуть больше текста */
+}
+
+.datasets-table tbody tr {
+    transition: var(--transition); /* Плавный переход как у карточек */
+}
+
+.datasets-table tbody tr:hover {
+    background: var(--secondary-bg); /* Цвет фона при hover как у карточек */
+}
+
+.datasets-table td {
+    padding: 0.375rem 1rem; /* 6px сверху/снизу (в 2 раза меньше 0.75rem), 16px слева/справа */
+    text-align: center;
+    color: var(--text-color); /* Цвет текста как везде */
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--secondary-bg); /* Разделитель строк */
+    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
+    vertical-align: middle; /* Выравнивание содержимого по центру */
+}
+
+/* Убираем лишние границы */
+.datasets-table th:last-child,
+.datasets-table td:last-child {
+    border-right: none; /* Убираем правую границу у последней ячейки в строке */
+}
+
+.datasets-table tbody tr:last-child td {
+    border-bottom: none; /* Убираем нижнюю границу у последней строки */
+}
+
+/* Ссылки в таблице */
+.datasets-table a {
+    color: var(--accent-color); /* Цвет ссылок как у акцентов */
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.datasets-table a:hover {
+    text-decoration: underline;
+    color: #e8c074; /* Чуть светлее при hover, как у кнопок */
+}
+
+/* Поле ввода примечаний */
+.datasets-table td:has(.form__input) {
+    padding: 0; /* Убираем отступы в ячейке с textarea для плотного прилегания */
+    display: flex;
+    align-items: center; /* Центрируем вертикально */
+    justify-content: center; /* Центрируем горизонтально */
+}
+
+.datasets-table .form__input {
+    width: 100%; /* Ширина на всю ячейку */
+    height: 100%; /* Высота на всю ячейку */
+    min-height: 1.5rem; /* Уменьшаем до 24px для соответствия узким строкам */
+    resize: vertical; /* Возможность изменения высоты */
+    text-align: left;
+    background: var(--secondary-bg);
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    color: var(--text-color);
+    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
+    margin: 0; /* Убираем внешние отступы */
+    box-sizing: border-box; /* Учитываем padding в размерах */
+}
+
+.datasets-table .form__input:focus {
+    background: #3a3a3a; /* Цвет фона при фокусе */
+/*  outline: 2px solid var(--accent-color); /* Обводка при фокусе */
+}
+
+/* Адаптивность */
+@media (max-width: 75rem) { /* 1200px */
+    .datasets-table {
+        font-size: 0.9rem; /* Уменьшаем шрифт для компактности */
+    }
+}
+
+@media (max-width: 48rem) { /* 768px */
+    .datasets-table {
+        display: block; /* Переключаем на блочный режим */
+        overflow-x: auto; /* Горизонтальная прокрутка */
+        white-space: nowrap; /* Предотвращаем перенос текста */
+    }
+
+    .datasets-table thead,
+    .datasets-table tbody,
+    .datasets-table tr,
+    .datasets-table th,
+    .datasets-table td {
+        display: inline-block;
+        width: 100%; /* Каждая строка занимает всю ширину */
+    }
+
+    .datasets-table th,
+    .datasets-table td {
+        text-align: left; /* Выравнивание слева для читаемости */
+        padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа для мобильных */
+    }
+
+    .datasets-table tbody tr {
+        border-bottom: 1px solid var(--secondary-bg);
+        margin-bottom: 0.625rem; /* 10px */
+    }
+
+    .datasets-table tbody tr:hover {
+        transform: none; /* Отключаем подъём на маленьких экранах */
+    }
+}
+
+/* Форма фильтров */
+.filter-form {
+    margin-bottom: 1.25rem; /* 20px */
+}
+
+.filter-box {
+    display: flex;
+    justify-content: space-between; /* Фильтры слева, кнопки справа */
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.625rem; /* 10px */
+    padding: 1.25rem; /* 20px */
+    background: var(--primary-bg); /* #232323 */
+    border: 2px solid var(--secondary-bg); /* #2e2e2e */
+    border-radius: 0.625rem; /* 10px */
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    align-items: center
+}
+
+.filter-box__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem; /* 10px */
+    justify-content: flex-start;
+}
+
+.filter-box__buttons {
+    display: flex;
+    gap: 0.625rem; /* 10px */
+    justify-content: flex-end;
+}
+
+.filter-box .form__group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 10rem; /* 160px */
+}
+
+.filter-box .form__input,
+.filter-box input[type="date"],
+.filter-box select {
+    width: 100%;
+    min-width: 8rem; /* 128px */
+    padding: 0.625rem; /* 10px */
+    background: var(--secondary-bg); /* #2e2e2e */
+    color: var(--text-color); /* #e0e0e0 */
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    font-size: 1rem;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.filter-box .form__input:focus,
+.filter-box input[type="date"]:focus,
+.filter-box select:focus {
+    background: #3a3a3a;
+}
+
+.filter-box .form__label {
+    font-size: 1rem;
+    color: var(--text-color); /* #e0e0e0 */
+    margin-bottom: 0.3125rem; /* 5px */
+}
+
+/* Таблица данных - обновление стилей для textarea */
+.datasets-table td:has(.form__input) {
+    padding: 0;
+    display: flex;
+    align-items: stretch; /* Растягиваем содержимое по высоте */
+    justify-content: center;
+}
+
+.datasets-table .form__input {
+    width: 100%;
+    height: 100%; /* Полная высота ячейки */
+    min-height: 1.5rem; /* Минимальная высота */
+    resize: vertical;
+    text-align: left;
+    background: var(--secondary-bg);
+    border: none;
+    border-radius: 0.3125rem; /* 5px */
+    color: var(--text-color);
+    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
+    margin: 0;
+    box-sizing: border-box;
+    transition: var(--transition);
+}
+
+.datasets-table .form__input:focus {
+    background: #3a3a3a;
+    outline: none; /* Убираем стандартную обводку */
+}
+
+/* Адаптивность */
+@media (max-width: 48rem) { /* 768px */
+    .filter-box {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .filter-box__filters {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .filter-box__buttons {
+        justify-content: center;
+        margin-top: 0.625rem; /* 10px */
+    }
+    
+    .filter-box .form__group {
+        width: 100%;
+        max-width: 15rem; /* 240px */
+    }
+}

@@ -23,6 +23,19 @@ class DatasetsListView(ListView):
             print(f"Ошибка подключения к parser_db: {e}")
             return ForumThread.objects.none()
 
+    def parse_time_string(self, time_str):
+        """Парсит строку времени (например, '2 д. 10 ч. 15 м.') в timedelta."""
+        if not time_str or time_str == "Нет данных" or time_str == "—":
+            return timedelta(days=0)
+        try:
+            parts = time_str.split()
+            days = int(parts[0]) if parts[0].isdigit() else 0
+            hours = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
+            minutes = int(parts[4]) if len(parts) > 4 and parts[4].isdigit() else 0
+            return timedelta(days=days, hours=hours, minutes=minutes)
+        except (ValueError, IndexError):
+            return timedelta(days=0)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         claims_data = cache.get("claims_data")
@@ -53,7 +66,7 @@ class DatasetsListView(ListView):
         prefix_filter = self.request.GET.get("prefix")
         judge_filter = self.request.GET.get("judge", "").strip()
         note_filter = self.request.GET.get("note")
-        urgent_filter = self.request.GET.get("urgent")  # Новый фильтр "Срочное"
+        urgent_filter = self.request.GET.get("urgent")
 
         # Фильтрация данных
         filtered_data = claims_data or []
@@ -85,7 +98,12 @@ class DatasetsListView(ListView):
                 if (
                     (claim["court_time"] and self.parse_court_time(claim["court_time"]) > timedelta(days=7) and
                      claim["prefix"] in ["На рассмотрении", "Нет"])
-                ) or (not claim["first_response_time"] and not claim["leading_judges"])
+                ) or (
+                    claim["leading_judges"] == "Не определён" and
+                    claim["prefix"] == "Нет" and
+                    claim["first_response_time"] != "Нет данных" and
+                    self.parse_time_string(claim["first_response_time"]) > timedelta(days=2, hours=12)
+                )
             ]
 
         # Получение уникальных судей
@@ -106,7 +124,7 @@ class DatasetsListView(ListView):
             "urgent": urgent_filter,
         }
         context["judges"] = judges
-        context["show_pagination"] = show_pagination  # Новый флаг для пагинации
+        context["show_pagination"] = show_pagination
         return context
 
     def parse_court_time(self, court_time_str):
