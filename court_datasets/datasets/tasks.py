@@ -13,5 +13,5 @@ def update_claims_data():
         claim_data["note"] = note.note if note else ""
         claim_data["thread_id"] = thread.id
         claims_data.append(claim_data)
-    cache.set("claims_data", claims_data, timeout=10)
+    cache.set("claims_data", claims_data, timeout=2)
     return claims_data

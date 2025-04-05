@@ -443,7 +443,7 @@ input[type="datetime-local"]:focus {
 }
 
 .datasets-table td {
-    padding: 0.375rem 1rem; /* 6px сверху/снизу (в 2 раза меньше 0.75rem), 16px слева/справа */
+    padding: 0.45rem 0.45rem; /* 6px сверху/снизу (в 2 раза меньше 0.75rem), 16px слева/справа */
     text-align: center;
     color: var(--text-color); /* Цвет текста как везде */
     font-size: 0.95rem;
@@ -658,4 +658,78 @@ input[type="datetime-local"]:focus {
         width: 100%;
         max-width: 15rem; /* 240px */
     }
+}
+/* Базовый стиль для ячеек с временем */
+.time-cell {
+    padding: 0; /* Убираем стандартные отступы ячейки, чтобы span полностью управлял пространством */
+}
+
+/* Общий стиль для span внутри ячеек */
+.time-cell span {
+    display: block; /* Делаем span блочным, чтобы он заполнял ячейку */
+    padding: 1rep 1rep; /* Фиксированные отступы для всех случаев */
+    width: 100%; /* Полная ширина ячейки */
+    height: 100%; /* Полная высота ячейки */
+    font-weight: bold;
+    box-sizing: border-box; /* Учитываем padding в размерах */
+}
+
+/* Цвет фона для ячеек с индикацией (полупрозрачный с закруглением) */
+.time-cell.colored span.time-indicator-0 {
+    background-color: rgba(142, 214, 152, 0.7); /* Бирюзовый, #34C4B5 с прозрачностью */
+    color: #333333; /* Тёмный текст для читаемости */
+    border-radius: 6px; /* Скругление углов */
+}
+.time-cell.colored span.time-indicator-1 {
+    background-color: rgba(142, 214, 152, 0.7); /* Светло-зелёный, #5AC8A8 */
+    color: #333333;
+    border-radius: 6px;
+}
+.time-cell.colored span.time-indicator-2 {
+    background-color: rgba(142, 214, 152, 0.7); /* Мягкий зелёный, #8ED698 */
+    color: #333333;
+    border-radius: 6px;
+}
+.time-cell.colored span.time-indicator-3 {
+    background-color: rgba(244, 211, 94, 0.7); /* Золотистый, #F4D35E */
+    color: #333333;
+    border-radius: 6px;
+}
+.time-cell.colored span.time-indicator-4 {
+    background-color: rgba(244, 162, 97, 0.7); /* Тёплый оранжевый, #F4A261 */
+    color: #333333;
+    border-radius: 6px;
+}
+.time-cell.colored span.time-indicator-5 {
+    background-color: rgba(238, 123, 91, 0.7); /* Коралловый, #EE7B5B */
+    color: #333333;
+    border-radius: 6px;
+}
+.time-cell.colored span.time-indicator-6 {
+    background-color: rgba(230, 57, 70, 0.7); /* Мягкий красный, #E63946 */
+    color: #333333;
+    border-radius: 6px;
+}
+
+/* Цвет текста для случаев без фона (без изменений) */
+.time-cell span.text-indicator-0 {
+    color: #8ED698 !important; /* Бирюзовый */
+}
+.time-cell span.text-indicator-1 {
+    color: #8ED698 !important; /* Светло-зелёный */
+}
+.time-cell span.text-indicator-2 {
+    color: #8ED698 !important; /* Мягкий зелёный */
+}
+.time-cell span.text-indicator-3 {
+    color: #F4D35E !important; /* Золотистый */
+}
+.time-cell span.text-indicator-4 {
+    color: #F4A261 !important; /* Тёплый оранжевый */
+}
+.time-cell span.text-indicator-5 {
+    color: #EE7B5B !important; /* Коралловый */
+}
+.time-cell span.text-indicator-6 {
+    color: #E63946 !important; /* Мягкий красный */
 }

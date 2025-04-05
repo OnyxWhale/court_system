@@ -4,49 +4,48 @@
 
 {% block content %}
     <section class="section">
-        <h1 class="section__title">Наборы данных</h1>
         <form method="get" class="filter-form">
             <div class="filter-box">
                 <div class="filter-box__filters">
                     <div class="form__group">
-                            <label for="title" class="form__label">Название:</label>
-                            <input type="text" id="title" name="title" value="{{ filters.title }}" class="form__input" oninput="this.form.submit()">
-                        </div>
-                        <div class="form__group">
-                            <label for="date_from" class="form__label">Дата от:</label>
-                            <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
-                        </div>
-                        <div class="form__group">
-                            <label for="date_to" class="form__label">Дата до:</label>
-                            <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
-                        </div>
-                        <div class="form__group">
-                            <label for="prefix" class="form__label">Префикс:</label>
-                            <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
-                                <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
-                                <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
-                                <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
-                                <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
-                                <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
-                                <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label for="judge" class="form__label">Судья:</label>
-                            <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
-                                <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
-                                {% for judge in judges %}
-                                    <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label for="note" class="form__label">Примечание:</label>
-                            <select id="note" name="note" class="form__input" onchange="this.form.submit()">
-                                <option value="" {% if not filters.note %}selected{% endif %}>Все</option>
-                                <option value="with" {% if filters.note == "with" %}selected{% endif %}>С примечанием</option>
-                                <option value="without" {% if filters.note == "without" %}selected{% endif %}>Без примечания</option>
-                            </select>
+                        <label for="title" class="form__label">Название:</label>
+                        <input type="text" id="title" name="title" value="{{ filters.title }}" class="form__input" oninput="this.form.submit()">
+                    </div>
+                    <div class="form__group">
+                        <label for="date_from" class="form__label">Дата от:</label>
+                        <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
+                    </div>
+                    <div class="form__group">
+                        <label for="date_to" class="form__label">Дата до:</label>
+                        <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
+                    </div>
+                    <div class="form__group">
+                        <label for="prefix" class="form__label">Префикс:</label>
+                        <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
+                            <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
+                            <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
+                            <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
+                            <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
+                            <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
+                            <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
+                        </select>
+                    </div>
+                    <div class="form__group">
+                        <label for="judge" class="form__label">Судья:</label>
+                        <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
+                            <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
+                            {% for judge in judges %}
+                                <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form__group">
+                        <label for="note" class="form__label">Примечание:</label>
+                        <select id="note" name="note" class="form__input" onchange="this.form.submit()">
+                            <option value="" {% if not filters.note %}selected{% endif %}>Все</option>
+                            <option value="with" {% if filters.note == "with" %}selected{% endif %}>С примечанием</option>
+                            <option value="without" {% if filters.note == "without" %}selected{% endif %}>Без примечания</option>
+                        </select>
                     </div>
                 </div>
                 <div class="filter-box__buttons">
@@ -116,7 +115,7 @@
                     "Content-Type": "application/x-www-form-urlencoded",
                     "X-CSRFToken": "{{ csrf_token }}",
                 },
-                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText) // Исправлено ¬e на note
+                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText)
             })
             .then(response => response.json())
             .then(data => {
@@ -128,5 +127,92 @@
             })
             .catch(error => console.error("Ошибка запроса:", error));
         }
+
+        // Функция для преобразования строки времени в минуты
+        function parseTimeToMinutes(timeStr) {
+            if (!timeStr || timeStr === "Нет данных" || timeStr === "—") return 0;
+            const parts = timeStr.split(" ");
+            const days = parseInt(parts[0]) || 0;
+            const hours = parseInt(parts[2]) || 0;
+            const minutes = parseInt(parts[4]) || 0;
+            return days * 1440 + hours * 60 + minutes; // 1440 минут в сутках
+        }
+
+        // Функция для определения уровня индикации (0-6)
+        function getIndicatorLevel(minutes, maxMinutes) {
+            if (minutes === 0) return 0;
+            const ratio = Math.min(minutes / maxMinutes, 1); // Нормализуем до 0-1
+            return Math.min(Math.floor(ratio * 6) + 1, 6); // Преобразуем в 1-6
+        }
+
+        // Применение индикации к ячейкам
+        document.addEventListener("DOMContentLoaded", () => {
+            const rows = document.querySelectorAll(".datasets-table tbody tr");
+
+            rows.forEach(row => {
+                // Получаем ячейки
+                const firstResponseCell = row.cells[2]; // "Первый ответ суда"
+                const courtTimeCell = row.cells[3];    // "Судопроизводство"
+                const prefixCell = row.cells[4];       // "Префикс"
+                const judgeCell = row.cells[5];        // "Ведущий судья"
+
+                // Значения
+                const firstResponseText = firstResponseCell.textContent.trim();
+                const courtTimeText = courtTimeCell.textContent.trim();
+                const prefix = prefixCell.textContent.trim();
+                const judge = judgeCell.textContent.trim();
+
+                // Добавляем класс для стилизации ячеек с временем
+                firstResponseCell.classList.add("time-cell");
+                courtTimeCell.classList.add("time-cell");
+
+                // Парсим время в минуты
+                const firstResponseMinutes = parseTimeToMinutes(firstResponseText);
+                const courtTimeMinutes = parseTimeToMinutes(courtTimeText);
+
+                // Логика для "Первый ответ суда"
+                if (firstResponseText !== "Нет данных" && firstResponseText !== "—") {
+                    const maxFirstResponseMinutes = 3 * 1440; // 3 дня в минутах
+                    const level = getIndicatorLevel(firstResponseMinutes, maxFirstResponseMinutes);
+                    const span = document.createElement("span");
+                    span.textContent = firstResponseText;
+
+                    if (judge === "Не определён") {
+                        // Закрашиваем ячейку, если судья не определён
+                        firstResponseCell.classList.add("colored");
+                        firstResponseCell.innerHTML = "";
+                        firstResponseCell.appendChild(span);
+                        span.classList.add(`time-indicator-${level}`);
+                    } else {
+                        // Только текст окрашивается
+                        firstResponseCell.innerHTML = "";
+                        firstResponseCell.appendChild(span);
+                        span.classList.add(`text-indicator-${level}`);
+                    }
+                }
+
+                // Логика для "Судопроизводство"
+                if (courtTimeText !== "Нет данных" && courtTimeText !== "—") {
+                    const maxCourtTimeMinutes = 7 * 1440; // 7 дней в минутах
+                    const level = getIndicatorLevel(courtTimeMinutes, maxCourtTimeMinutes);
+                    const span = document.createElement("span");
+                    span.textContent = courtTimeText;
+
+                    const finalPrefixes = ["Рассмотрено", "Отказано", "Важно"];
+                    if (!finalPrefixes.includes(prefix)) {
+                        // Закрашиваем ячейку, если префикс не финальный
+                        courtTimeCell.classList.add("colored");
+                        courtTimeCell.innerHTML = "";
+                        courtTimeCell.appendChild(span);
+                        span.classList.add(`time-indicator-${level}`);
+                    } else {
+                        // Только текст окрашивается
+                        courtTimeCell.innerHTML = "";
+                        courtTimeCell.appendChild(span);
+                        span.classList.add(`text-indicator-${level}`);
+                    }
+                }
+            });
+        });
     </script>
 {% endblock %}
