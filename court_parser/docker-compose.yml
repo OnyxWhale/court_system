@@ -2,59 +2,106 @@ services:
   parser_db:
     image: postgres:16
     environment:
-      POSTGRES_DB: parser_db
-      POSTGRES_USER: parser_user
-      POSTGRES_PASSWORD: parser_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - parser_db_data:/var/lib/postgresql/data
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   parser_redis:
     image: redis:7.2
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   parser_app:
     build: .
     command: >
-      sh -c "sleep 10 && 
-             python manage.py makemigrations &&
+      sh -c "python manage.py makemigrations &&
              python manage.py migrate django_celery_beat &&
              python manage.py migrate &&
              gunicorn --bind 0.0.0.0:8001 court_parser.wsgi:application"
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - parser_db
-      - parser_redis
+      parser_db:
+        condition: service_healthy
+      parser_redis:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/parser/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
 
   parser_celery:
     build: .
     command: >
-      sh -c "sleep 10 && 
-             celery -A court_parser.celery worker --loglevel=info"
+      sh -c "celery -A court_parser.celery worker --loglevel=info"
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - parser_db
-      - parser_redis
+      parser_db:
+        condition: service_healthy
+      parser_redis:
+        condition: service_healthy
     networks:
       - court_network
-      
+    healthcheck:
+      test: ["CMD", "celery", "-A", "court_parser.celery", "inspect", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
+
   parser_beat:
     build: .
-    command: celery -A court_parser beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: >
+      sh -c "celery -A court_parser beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     volumes:
       - .:/app
     depends_on:
-      - parser_redis
-      - parser_db
-      - parser_celery
+      parser_redis:
+        condition: service_healthy
+      parser_db:
+        condition: service_healthy
+      parser_celery:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "celery", "-A", "court_parser", "beat", "--pidfile=/tmp/celerybeat.pid", "--dry-run"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
 
 volumes:
   parser_db_data:

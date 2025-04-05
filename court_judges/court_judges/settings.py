@@ -1,18 +1,15 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
-#BASE_DIR = Path(__file__).resolve().parent.parent
-#SECRET_KEY = "django-insecure-your-secret-key-here"
-DEBUG = True
-#ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-#CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
-
+# Загрузка переменных из .env
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-ваш_секретный_ключ_здесь")
-#DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+load_dotenv(BASE_DIR / ".env")
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-default-key")
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
-
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -57,11 +54,11 @@ WSGI_APPLICATION = "court_judges.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "judges_db",
-        "USER": "judges_user",
-        "PASSWORD": "judges_password",
-        "HOST": "judges_db",
-        "PORT": "5432",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),
+        "PORT": os.getenv("POSTGRES_PORT"),
     }
 }
 
@@ -83,5 +80,4 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Пароль для подтверждения действий
-ACTION_CONFIRMATION_PASSWORD = "123"
+ACTION_CONFIRMATION_PASSWORD = os.getenv("ACTION_CONFIRMATION_PASSWORD", "123")

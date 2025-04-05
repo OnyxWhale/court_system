@@ -2,13 +2,21 @@ services:
   judges_db:
     image: postgres:16
     environment:
-      POSTGRES_DB: judges_db
-      POSTGRES_USER: judges_user
-      POSTGRES_PASSWORD: judges_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - judges_db_data:/var/lib/postgresql/data
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - .env
 
   judges_app:
     build: .
@@ -19,9 +27,18 @@ services:
     volumes:
       - ./logs:/app/logs
     depends_on:
-      - judges_db
+      judges_db:
+        condition: service_healthy
     networks:
       - court_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/judges/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - .env
 
 volumes:
   judges_db_data:

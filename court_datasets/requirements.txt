@@ -6,3 +6,4 @@ django-celery-beat==2.7.0
 redis==5.0.8
 django-redis==5.4.0
 pytz
+python-dotenv==1.1.0

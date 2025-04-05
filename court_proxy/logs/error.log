@@ -1,17 +1,56 @@
-2025/04/03 23:48:45 [notice] 1#1: using the "epoll" event method
-2025/04/03 23:48:45 [notice] 1#1: nginx/1.27.4
-2025/04/03 23:48:45 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
-2025/04/03 23:48:45 [notice] 1#1: OS: Linux 5.15.167.4-microsoft-standard-WSL2
-2025/04/03 23:48:45 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
-2025/04/03 23:48:45 [notice] 1#1: start worker processes
-2025/04/03 23:48:45 [notice] 1#1: start worker process 27
-2025/04/03 23:48:45 [notice] 1#1: start worker process 28
-2025/04/04 00:21:38 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/judges/"
-2025/04/04 00:21:38 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "POST /datasets/update-note/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/update-note/", host: "localhost:1408", referrer: "http://localhost:1408/datasets/"
-2025/04/04 00:21:39 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/judges/"
-2025/04/04 00:21:40 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/judges/"
-2025/04/04 00:21:40 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/judges/"
-2025/04/04 00:21:43 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/judges/"
-2025/04/04 00:21:45 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/judges/"
-2025/04/04 00:21:50 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/judges/"
-2025/04/04 00:21:54 [error] 28#28: *132 connect() failed (111: Connection refused) while connecting to upstream, client: 172.18.0.1, server: localhost, request: "GET /datasets/ HTTP/1.1", upstream: "http://172.18.0.13:8003/datasets/", host: "localhost:1408", referrer: "http://localhost:1408/parser/"
+2025/04/04 23:52:30 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:30 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:31 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:31 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:31 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:31 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:32 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:32 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:33 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:33 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:35 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:35 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:38 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:38 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:45 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:45 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:52:58 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:52:58 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:53:23 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:53:23 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:54:15 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:54:15 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:13 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:13 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:14 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:14 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:14 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:14 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:15 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:15 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:16 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:16 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:18 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:18 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:21 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:21 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:28 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:28 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:55:41 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:55:41 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:56:06 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:56:06 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:56:21 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:56:21 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:56:49 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:56:49 [emerg] 1#1: cannot load certificate "/etc/nginx/ssl/selfsigned.crt": BIO_new_file() failed (SSL: error:80000002:system library::No such file or directory:calling fopen(/etc/nginx/ssl/selfsigned.crt, r) error:10000080:BIO routines::no such file)
+2025/04/04 23:58:14 [warn] 1#1: the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /etc/nginx/nginx.conf:2
+2025/04/04 23:58:14 [emerg] 1#1: mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)
+2025/04/04 23:58:58 [notice] 1#1: using the "epoll" event method
+2025/04/04 23:58:58 [notice] 1#1: nginx/1.27.4
+2025/04/04 23:58:58 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14) 
+2025/04/04 23:58:58 [notice] 1#1: OS: Linux 5.15.167.4-microsoft-standard-WSL2
+2025/04/04 23:58:58 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2025/04/04 23:58:58 [notice] 1#1: start worker processes
+2025/04/04 23:58:58 [notice] 1#1: start worker process 28
+2025/04/04 23:58:58 [notice] 1#1: start worker process 29

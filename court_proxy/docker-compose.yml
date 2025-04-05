@@ -3,12 +3,13 @@ services:
     build: .
     ports:
       - "1408:1408"
-      - "443:443"
     volumes:
       - ./static:/app/static
       - ./logs:/var/log/nginx
     networks:
       - court_network
+    env_file:
+      - .env
 
 networks:
   court_network:

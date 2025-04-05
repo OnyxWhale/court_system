@@ -1,23 +1,3 @@
------ File: D:\Development\court_system\all_code.txt -----
------ File: D:\Development\court_system\script_all.ps1 -----
-# Укажите путь к вашему проекту и папке, которую нужно исключить
-$projectPath = "D:\Development\court_system"
-$excludePath = "D:\Development\court_system\venv"
-$outputFile = "D:\Development\court_system\all_code.txt"
-
-# Очистка или создание выходного файла
-Remove-Item -Path $outputFile -Force -ErrorAction SilentlyContinue
-New-Item -Path $outputFile -ItemType File -Force | Out-Null
-
-# Рекурсивный поиск всех файлов в проекте, исключая определенную папку
-Get-ChildItem -Path $projectPath -Recurse -File | Where-Object {
-    $_.FullName -notlike "$excludePath*"
-} | ForEach-Object {
-    # Чтение содержимого файлов и добавление в выходной файл
-    $content = Get-Content -Path $_.FullName -ErrorAction SilentlyContinue
-    Add-Content -Path $outputFile -Value "----- File: $($_.FullName) -----"
-    Add-Content -Path $outputFile -Value $content
-}
 ----- File: D:\Development\court_system\court_datasets\docker-compose.yml -----
 services:
   datasets_db:
@@ -113,6 +93,7 @@ celery==5.4.0
 django-celery-beat==2.7.0
 redis==5.0.8
 django-redis==5.4.0
+pytz
 ----- File: D:\Development\court_system\court_datasets\court_datasets\__init__.py -----
 ----- File: D:\Development\court_system\court_datasets\court_datasets\asgi.py -----
 """
@@ -515,6 +496,7 @@ from django.db.utils import OperationalError
 from .tasks import update_claims_data
 from django.core.cache import cache
 from celery.exceptions import OperationalError as CeleryOperationalError
+from datetime import datetime, timedelta
 
 class DatasetsListView(ListView):
     model = ForumThread
@@ -534,21 +516,97 @@ class DatasetsListView(ListView):
         context = super().get_context_data(**kwargs)
         claims_data = cache.get("claims_data")
         if not claims_data:
+            print("Кэш пуст, загружаем данные напрямую.")
+            claims_data = []
             try:
-                update_claims_data.delay()
-                print("Задача отправлена в Celery, данные пока недоступны.")
-            except CeleryOperationalError as e:
-                print(f"Ошибка Celery: {e}. Используем прямую обработку данных.")
-                claims_data = []
-                for thread in self.get_queryset():  # Порядок из get_queryset сохраняется
+                for thread in self.get_queryset():
                     claim_data = get_claim_data(thread)
                     note = ClaimNote.objects.filter(thread_id=thread.id).first()
                     claim_data["note"] = note.note if note else ""
                     claim_data["thread_id"] = thread.id
                     claims_data.append(claim_data)
                 cache.set("claims_data", claims_data, timeout=3600)
-        context["claims"] = claims_data
+            except Exception as e:
+                print(f"Ошибка при загрузке данных: {e}")
+                claims_data = []
+            try:
+                update_claims_data.delay()
+                print("Задача на обновление кэша отправлена в Celery.")
+            except CeleryOperationalError as e:
+                print(f"Ошибка Celery: {e}")
+
+        # Получение фильтров из GET-параметров
+        title_filter = self.request.GET.get("title", "").strip()
+        date_from = self.request.GET.get("date_from")
+        date_to = self.request.GET.get("date_to")
+        prefix_filter = self.request.GET.get("prefix")
+        judge_filter = self.request.GET.get("judge", "").strip()
+        note_filter = self.request.GET.get("note")
+        urgent_filter = self.request.GET.get("urgent")  # Новый фильтр "Срочное"
+
+        # Фильтрация данных
+        filtered_data = claims_data or []
+        if title_filter:
+            filtered_data = [claim for claim in filtered_data if title_filter.lower() in claim["title"].lower()]
+        if date_from:
+            try:
+                date_from_dt = datetime.strptime(date_from, "%Y-%m-%d")
+                filtered_data = [claim for claim in filtered_data if claim["created_at"].replace(tzinfo=None) >= date_from_dt]
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_dt = datetime.strptime(date_to, "%Y-%m-%d")
+                filtered_data = [claim for claim in filtered_data if claim["created_at"].replace(tzinfo=None) <= date_to_dt]
+            except ValueError:
+                pass
+        if prefix_filter:
+            filtered_data = [claim for claim in filtered_data if claim["prefix"] == prefix_filter]
+        if judge_filter:
+            filtered_data = [claim for claim in filtered_data if judge_filter.lower() in claim["leading_judges"].lower()]
+        if note_filter == "with":
+            filtered_data = [claim for claim in filtered_data if claim["note"]]
+        elif note_filter == "without":
+            filtered_data = [claim for claim in filtered_data if not claim["note"]]
+        if urgent_filter == "true":
+            filtered_data = [
+                claim for claim in filtered_data
+                if (
+                    (claim["court_time"] and self.parse_court_time(claim["court_time"]) > timedelta(days=7) and
+                     claim["prefix"] in ["На рассмотрении", "Нет"])
+                ) or (not claim["first_response_time"] and not claim["leading_judges"])
+            ]
+
+        # Получение уникальных судей
+        judges = sorted(set(claim["leading_judges"] for claim in claims_data if claim["leading_judges"]))
+
+        # Проверка необходимости пагинации
+        show_pagination = len(filtered_data) > self.paginate_by
+
+        # Передача данных в контекст
+        context["claims"] = filtered_data
+        context["filters"] = {
+            "title": title_filter,
+            "date_from": date_from,
+            "date_to": date_to,
+            "prefix": prefix_filter,
+            "judge": judge_filter,
+            "note": note_filter,
+            "urgent": urgent_filter,
+        }
+        context["judges"] = judges
+        context["show_pagination"] = show_pagination  # Новый флаг для пагинации
         return context
+
+    def parse_court_time(self, court_time_str):
+        """Парсит строку времени судопроизводства в timedelta."""
+        if not court_time_str or court_time_str == "—":
+            return timedelta(days=0)
+        try:
+            days = int(court_time_str.split()[0])
+            return timedelta(days=days)
+        except (ValueError, IndexError):
+            return timedelta(days=0)
 
 def update_note(request):
     if request.method == "POST":
@@ -600,6 +658,56 @@ def update_note(request):
 {% block content %}
     <section class="section">
         <h1 class="section__title">Наборы данных</h1>
+        <form method="get" class="filter-form">
+            <div class="filter-box">
+                <div class="filter-box__filters">
+                    <div class="form__group">
+                            <label for="title" class="form__label">Название:</label>
+                            <input type="text" id="title" name="title" value="{{ filters.title }}" class="form__input" oninput="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="date_from" class="form__label">Дата от:</label>
+                            <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="date_to" class="form__label">Дата до:</label>
+                            <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
+                        </div>
+                        <div class="form__group">
+                            <label for="prefix" class="form__label">Префикс:</label>
+                            <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
+                                <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
+                                <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
+                                <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
+                                <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
+                                <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="judge" class="form__label">Судья:</label>
+                            <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
+                                {% for judge in judges %}
+                                    <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="note" class="form__label">Примечание:</label>
+                            <select id="note" name="note" class="form__input" onchange="this.form.submit()">
+                                <option value="" {% if not filters.note %}selected{% endif %}>Все</option>
+                                <option value="with" {% if filters.note == "with" %}selected{% endif %}>С примечанием</option>
+                                <option value="without" {% if filters.note == "without" %}selected{% endif %}>Без примечания</option>
+                            </select>
+                    </div>
+                </div>
+                <div class="filter-box__buttons">
+                    <button type="submit" name="urgent" value="true" class="button button--urgent">Срочное</button>
+                    <a href="{% url 'datasets:datasets_list' %}" class="button button--secondary">Сбросить</a>
+                </div>
+            </div>
+        </form>
         <div class="message-list">
             <div class="message-block">
                 <table class="datasets-table">
@@ -608,11 +716,10 @@ def update_note(request):
                             <th>Исковое заявление</th>
                             <th>Дата подачи</th>
                             <th>Первый ответ суда</th>
-                            <th>Время судопроизводства</th>
+                            <th>Судопроизводство</th>
                             <th>Префикс</th>
-                            <th>Текущий статус</th>
                             <th>Ведущий судья</th>
-                            <th>Примечание</th>
+                            <th>Примечания</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -620,25 +727,24 @@ def update_note(request):
                             <tr>
                                 <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
                                 <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
-                                <td>{{ claim.first_response_time }}</td>
-                                <td>{{ claim.court_time }}</td>
+                                <td>{{ claim.first_response_time|default:"—" }}</td>
+                                <td>{{ claim.court_time|default:"—" }}</td>
                                 <td>{{ claim.prefix }}</td>
-                                <td>{{ claim.status }}</td>
-                                <td>{{ claim.leading_judges }}</td>
+                                <td>{{ claim.leading_judges|default:"—" }}</td>
                                 <td>
                                     <textarea class="form__input" data-thread-id="{{ claim.thread_id }}" onblur="saveNote(this)">{{ claim.note }}</textarea>
                                 </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="8" class="empty-text">Данные отсутствуют</td>
+                                <td colspan="7" class="empty-text">Данные отсутствуют</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-        {% if is_paginated %}
+        {% if show_pagination %}
             <div class="pagination">
                 <span class="pagination__info">
                     {% if page_obj.has_previous %}
@@ -663,14 +769,19 @@ def update_note(request):
                     "Content-Type": "application/x-www-form-urlencoded",
                     "X-CSRFToken": "{{ csrf_token }}",
                 },
-                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText)
+                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText) // Исправлено ¬e на note
             })
             .then(response => response.json())
             .then(data => {
-                if (!data.success) console.error("Ошибка:", data.error);
-            });
+                if (!data.success) {
+                    console.error("Ошибка:", data.error);
+                } else {
+                    console.log("Примечание сохранено:", noteText);
+                }
+            })
+            .catch(error => console.error("Ошибка запроса:", error));
         }
-        </script>
+    </script>
 {% endblock %}
 ----- File: D:\Development\court_system\court_judges\docker-compose.yml -----
 services:
@@ -2564,545 +2675,3 @@ server {
 </body>
 </html>
 ----- File: D:\Development\court_system\court_proxy\static\css\style.css -----
-/* Общие стили (Reset и базовые настройки) */
-:root {
-    --primary-bg: #232323;
-    --secondary-bg: #2e2e2e;
-    --accent-color: #f6d28e;
-    --text-color: #e0e0e0;
-    --shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.4); /* 4px 12px */
-    --transition: all 0.3s;
-    --danger-color: #c03333;
-    --danger-hover: #d53b64;
-}
-
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    background: #181818;
-    color: var(--text-color);
-    font-family: 'Segoe UI', sans-serif;
-    line-height: 1.6;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Контейнеры и Layout */
-.container {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 1.25rem; /* 20px */
-    flex: 1;
-}
-
-.section {
-    margin: 0;
-    width: 100%;
-    flex: 1;
-}
-
-/* Типографика */
-.section__title {
-    font-size: 2rem;
-    color: var(--accent-color);
-    text-align: center;
-    margin-bottom: 1.25rem; /* 20px */
-}
-
-.section__subtitle {
-    font-size: 1.5rem;
-    color: var(--accent-color);
-    margin: 1.25rem 0; /* 20px */
-    text-align: center;
-}
-
-.card__title {
-    font-size: 1.15rem;
-    color: var(--accent-color);
-    text-align: center;
-    margin-bottom: 0.3125rem; /* 5px */
-}
-
-.card__description {
-    font-size: 1rem;
-    color: #b0b0b0;
-    text-align: center;
-}
-
-/* Шапка */
-.header {
-    background: var(--primary-bg);
-    padding: 1.25rem 0; /* 20px */
-    box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.5); /* 2px 10px */
-    display: flex;
-    align-items: center;
-    min-height: 5rem; /* 80px */
-}
-
-.header__title {
-    color: var(--accent-color);
-    text-align: center;
-    width: 100%;
-}
-
-/* Навигация */
-.nav-bar {
-    display: flex;
-    justify-content: center;
-    gap: 0.9375rem; /* 15px */
-    width: 100%;
-}
-
-.nav-link {
-    background: var(--secondary-bg);
-    border-radius: 0.5rem; /* 8px */
-    padding: 0.75rem 1.5625rem; /* 12px 25px */
-    text-decoration: none;
-    color: var(--text-color);
-    font-size: 1.2rem;
-    text-transform: uppercase;
-    transition: var(--transition);
-    will-change: transform;
-}
-
-.nav-link:hover {
-    background: #3a3a3a;
-    color: var(--accent-color);
-    transform: translateY(-0.1875rem); /* -3px */
-}
-
-/* Карточки */
-.card {
-    background: var(--primary-bg);
-    border-radius: 0.625rem; /* 10px */
-    padding: 1.25rem; /* 20px */
-    box-shadow: var(--shadow);
-    border: 2px solid var(--secondary-bg);
-    transition: var(--transition);
-    text-decoration: none;
-    color: var(--text-color);
-    display: block;
-    will-change: transform;
-}
-
-.card:hover {
-    transform: translateY(-0.3125rem); /* -5px */
-    background: var(--secondary-bg);
-    border-color: var(--accent-color);
-}
-
-/* Сетки */
-.button-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.25rem; /* 20px */
-}
-
-.thread-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1.25rem; /* 20px */
-}
-
-.message-list {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem; /* 20px */
-    margin-bottom: 1.25rem; /* 20px */
-}
-
-/* Сообщения */
-.message-block {
-    background: var(--primary-bg);
-    border-radius: 0.625rem; /* 10px */
-    padding: 1.25rem; /* 20px */
-    box-shadow: var(--shadow);
-    border: 2px solid var(--secondary-bg);
-/*    transition: var(--transition);*/
-/*    will-change: transform;*/
-}
-/*
-.message-block:hover {
-    background: var(--secondary-bg);
-    border-color: var(--accent-color);
-}*/
-
-.message__header {
-    font-size: 1.1rem;
-    margin-bottom: 1.25rem; /* 20px */
-    text-align: center;
-}
-
-.message__header strong,
-.message__header span {
-    color: var(--accent-color);
-}
-
-.message__content {
-    font-size: 1rem;
-    color: var(--text-color);
-}
-
-.info-item {
-    font-size: 0.95rem;
-    color: #b0b0b0;
-}
-
-.info-item span {
-    color: var(--text-color);
-}
-
-/* Формы */
-.parser-container {
-    display: flex;
-    justify-content: center;
-}
-
-.parser-card {
-    width: 100%;
-    max-width: 100%;
-    text-align: center;
-}
-
-.parser-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem; /* 20px */
-    align-items: center;
-    margin-top: 1.25rem; /* 20px */
-}
-
-.form__group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.form__label {
-    font-size: 1rem;
-    color: var(--text-color);
-    margin-bottom: 0.3125rem; /* 5px */
-}
-
-.form__input,
-textarea,
-input[type="datetime-local"] {
-    padding: 0.625rem; /* 10px */
-    border: none;
-    border-radius: 0.3125rem; /* 5px */
-    background: var(--secondary-bg);
-    color: var(--text-color);
-    font-size: 1rem;
-    width: 12rem; /* 250px */
-    transition: var(--transition);
-    text-align: center;
-    font-weight: bold;
-}
-
-.form__input:focus,
-textarea:focus,
-input[type="datetime-local"]:focus {
-    background: #3a3a3a;
-    outline: none;
-}
-
-.form__buttons {
-    display: flex;
-    gap: 0.625rem; /* 10px */
-    justify-content: center;
-}
-
-/* Кнопки */
-.button {
-    display: inline-block;
-    padding: 0.75rem 1.5625rem; /* 12px 25px */
-    background: var(--accent-color);
-    color: #181818;
-    text-decoration: none;
-    border-radius: 0.5rem; /* 8px */
-    font-weight: bold;
-    font-size: 1rem;
-    text-align: center;
-    transition: var(--transition);
-    border: none;
-    cursor: pointer;
-    will-change: transform;
-}
-
-.button:hover {
-    background: #e8c074;
-}
-
-.button:focus {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 2px;
-}
-
-.button--secondary {
-    background: var(--secondary-bg);
-    color: var(--accent-color);
-}
-
-.button--secondary:hover {
-    background: #3a3a3a;
-}
-
-.button--danger {
-    background: var(--danger-color);
-}
-
-.button--danger:hover {
-    background: var(--danger-hover);
-}
-
-/* Статус */
-.status-box {
-    margin-top: 1.25rem; /* 20px */
-    padding: 0.9375rem; /* 15px */
-    background: var(--secondary-bg);
-    border-radius: 0.5rem; /* 8px */
-    box-shadow: inset 0 0.125rem 0.3125rem rgba(0, 0, 0, 0.3); /* 2px 5px */
-}
-
-.status__text {
-    font-size: 1rem;
-    color: var(--accent-color);
-    margin: 0.3125rem 0; /* 5px */
-    text-align: center;
-}
-
-/* Навигационные ссылки */
-.threads-link {
-    display: flex;
-    justify-content: center;
-    margin: 1.25rem 0; /* 20px */
-    gap: 0.625rem; /* 10px */
-}
-
-/* Пагинация */
-.pagination {
-    margin-top: 1.875rem; /* 30px */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.9375rem; /* 15px */
-}
-
-.pagination__info {
-    color: #b0b0b0;
-    font-size: 1rem;
-}
-
-/* Пустое состояние */
-.empty-text {
-    grid-column: 1 / -1;
-    text-align: center;
-    font-size: 1.2rem;
-    color: #b0b0b0;
-    padding: 1.25rem; /* 20px */
-}
-
-/* Модальные окна */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal__content {
-    background: var(--primary-bg);
-    padding: 1.25rem; /* 20px */
-    border-radius: 0.625rem; /* 10px */
-    box-shadow: var(--shadow);
-    width: 25rem; /* 400px */
-    text-align: center;
-}
-
-.modal__title {
-    font-size: 1.5rem;
-    color: var(--accent-color);
-    margin-bottom: 0.625rem; /* 10px */
-}
-
-.modal__text {
-    font-size: 1rem;
-    color: var(--text-color);
-    margin-bottom: 0.9375rem; /* 15px */
-}
-
-.modal__buttons {
-    display: flex;
-    gap: 0.625rem; /* 10px */
-    justify-content: center;
-}
-
-/* Ошибки */
-.error-section {
-    text-align: center;
-}
-
-.error-message {
-    font-size: 1.2rem;
-    color: var(--danger-color);
-    margin: 1.25rem 0; /* 20px */
-}
-
-/* Футер */
-.footer {
-    background: var(--primary-bg);
-    padding: 1.25rem; /* 20px */
-    text-align: center;
-    color: #b0b0b0;
-    box-shadow: 0 -0.125rem 0.625rem rgba(0, 0, 0, 0.5); /* -2px 10px */
-    width: 100%;
-}
-
-.footer__text {
-    font-size: 1rem;
-}
-
-/* Таблица данных */
-.datasets-table {
-    width: 100%; /* Таблица занимает всю ширину контейнера */
-    border-collapse: separate; /* Для закруглений и теней */
-    border-spacing: 0; /* Убираем промежутки между ячейками */
-    background: var(--primary-bg); /* Фон как у карточек */
-    border-radius: 0.625rem; /* 10px, как у карточек */
-    box-shadow: var(--shadow); /* Тень как у карточек */
-    overflow: hidden; /* Чтобы закругления работали корректно */
-}
-
-.datasets-table thead {
-    background: var(--secondary-bg); /* Цвет заголовков как у навигации */
-}
-
-.datasets-table th {
-    padding: 0.5rem 1.5rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
-    text-align: center;
-    color: var(--accent-color); /* Цвет текста как у заголовков */
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 1rem;
-    border-bottom: 2px solid var(--accent-color); /* Линия под заголовками */
-    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
-    min-width: max-content; /* Ширина ячейки чуть больше текста */
-}
-
-.datasets-table tbody tr {
-    transition: var(--transition); /* Плавный переход как у карточек */
-}
-
-.datasets-table tbody tr:hover {
-    background: var(--secondary-bg); /* Цвет фона при hover как у карточек */
-}
-
-.datasets-table td {
-    padding: 0.375rem 1rem; /* 6px сверху/снизу (в 2 раза меньше 0.75rem), 16px слева/справа */
-    text-align: center;
-    color: var(--text-color); /* Цвет текста как везде */
-    font-size: 0.95rem;
-    border-bottom: 1px solid var(--secondary-bg); /* Разделитель строк */
-    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
-    vertical-align: middle; /* Выравнивание содержимого по центру */
-}
-
-/* Убираем лишние границы */
-.datasets-table th:last-child,
-.datasets-table td:last-child {
-    border-right: none; /* Убираем правую границу у последней ячейки в строке */
-}
-
-.datasets-table tbody tr:last-child td {
-    border-bottom: none; /* Убираем нижнюю границу у последней строки */
-}
-
-/* Ссылки в таблице */
-.datasets-table a {
-    color: var(--accent-color); /* Цвет ссылок как у акцентов */
-    text-decoration: none;
-    transition: var(--transition);
-}
-
-.datasets-table a:hover {
-    text-decoration: underline;
-    color: #e8c074; /* Чуть светлее при hover, как у кнопок */
-}
-
-/* Поле ввода примечаний */
-.datasets-table td:has(.form__input) {
-    padding: 0; /* Убираем отступы в ячейке с textarea для плотного прилегания */
-    display: flex;
-    align-items: center; /* Центрируем вертикально */
-    justify-content: center; /* Центрируем горизонтально */
-}
-
-.datasets-table .form__input {
-    width: 100%; /* Ширина на всю ячейку */
-    height: 100%; /* Высота на всю ячейку */
-    min-height: 1.5rem; /* Уменьшаем до 24px для соответствия узким строкам */
-    resize: vertical; /* Возможность изменения высоты */
-    text-align: left;
-    background: var(--secondary-bg);
-    border: none;
-    border-radius: 0.3125rem; /* 5px */
-    color: var(--text-color);
-    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
-    margin: 0; /* Убираем внешние отступы */
-    box-sizing: border-box; /* Учитываем padding в размерах */
-}
-
-.datasets-table .form__input:focus {
-    background: #3a3a3a; /* Цвет фона при фокусе */
-    outline: 2px solid var(--accent-color); /* Обводка при фокусе */
-}
-
-/* Адаптивность */
-@media (max-width: 75rem) { /* 1200px */
-    .datasets-table {
-        font-size: 0.9rem; /* Уменьшаем шрифт для компактности */
-    }
-}
-
-@media (max-width: 48rem) { /* 768px */
-    .datasets-table {
-        display: block; /* Переключаем на блочный режим */
-        overflow-x: auto; /* Горизонтальная прокрутка */
-        white-space: nowrap; /* Предотвращаем перенос текста */
-    }
-
-    .datasets-table thead,
-    .datasets-table tbody,
-    .datasets-table tr,
-    .datasets-table th,
-    .datasets-table td {
-        display: inline-block;
-        width: 100%; /* Каждая строка занимает всю ширину */
-    }
-
-    .datasets-table th,
-    .datasets-table td {
-        text-align: left; /* Выравнивание слева для читаемости */
-        padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа для мобильных */
-    }
-
-    .datasets-table tbody tr {
-        border-bottom: 1px solid var(--secondary-bg);
-        margin-bottom: 0.625rem; /* 10px */
-    }
-
-    .datasets-table tbody tr:hover {
-        transform: none; /* Отключаем подъём на маленьких экранах */
-    }
-}
