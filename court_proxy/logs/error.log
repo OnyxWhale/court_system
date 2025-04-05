@@ -54,3 +54,4 @@
 2025/04/04 23:58:58 [notice] 1#1: start worker processes
 2025/04/04 23:58:58 [notice] 1#1: start worker process 28
 2025/04/04 23:58:58 [notice] 1#1: start worker process 29
+2025/04/04 23:59:13 [error] 29#29: *3 parser_app could not be resolved (2: Server failure), client: 172.18.0.1, server: localhost, request: "GET /parser/ HTTP/1.1", host: "localhost:1408", referrer: "http://localhost:1408/"
