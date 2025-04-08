@@ -3,16 +3,22 @@ __pycache__/
 venv/
 logs/
 *.dockerignore
+all_code.txt
+combined_files.txt
+html_css.ps1
+req.txt
+script_all.ps1
 ----- File: D:\Development\court_system\all_code.txt -----
 ----- File: D:\Development\court_system\.gitignore -----
 __pycache__/
 venv/
 logs/
 *.dockerignore
------ File: D:\Development\court_system\req.txt -----
-apt install apache2-utils
-court_system\court_proxy\
-htpasswd -c .htpasswd admin
+all_code.txt
+combined_files.txt
+html_css.ps1
+req.txt
+script_all.ps1
 ----- File: D:\Development\court_system\script_all.ps1 -----
 # Укажите путь к вашему проекту и папке, которую нужно исключить
 $projectPath = "D:\Development\court_system"
@@ -32,11 +38,6 @@ Get-ChildItem -Path $projectPath -Recurse -File | Where-Object {
     Add-Content -Path $outputFile -Value "----- File: $($_.FullName) -----"
     Add-Content -Path $outputFile -Value $content
 }
------ File: D:\Development\court_system\court_datasets\.dockerignore -----
-logs/
-__pycache__/
-.env
-docker-compose.yml
 ----- File: D:\Development\court_system\court_datasets\.env -----
 DJANGO_SECRET_KEY=your-secret-key-here
 DJANGO_DEBUG=False
@@ -996,11 +997,6 @@ def update_note(request):
         });
     </script>
 {% endblock %}
------ File: D:\Development\court_system\court_judges\.dockerignore -----
-logs/
-__pycache__/
-.env
-docker-compose.yml
 ----- File: D:\Development\court_system\court_judges\.env -----
 DJANGO_SECRET_KEY=your-secret-key-here
 DJANGO_DEBUG=False
@@ -1766,11 +1762,6 @@ def add_class(field, css_class):
         </form>
     </section>
 {% endblock %}
------ File: D:\Development\court_system\court_parser\.dockerignore -----
-logs/
-__pycache__/
-.env
-docker-compose.yml
 ----- File: D:\Development\court_system\court_parser\.env -----
 DJANGO_SECRET_KEY=your-secret-key-here
 DJANGO_DEBUG=False
@@ -2097,6 +2088,22 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'court_parser.settings')
 
 application = get_wsgi_application()
+----- File: D:\Development\court_system\court_parser\court_parser\__pycache__\__init__.cpython-312.pyc -----
+�
+
+    �Z�gB   �                   �   � d dl mZ dZy)�   )�app)�
+celery_appN)�celeryr   r   �__all__� �    �/app/court_parser/__init__.py�<module>r
+      s
+   �� %�
+�r   
+----- File: D:\Development\court_system\court_parser\court_parser\__pycache__\celery.cpython-312.pyc -----
+�
+
+    �Z�g�   �                   �   � d dl Z d dlmZ e j                  j	                  dd�        ed�      Zej
+                  dd��       ej                  �        y)	�    N)�Celery�DJANGO_SETTINGS_MODULEzcourt_parser.settings�court_parserzdjango.conf:settings�CELERY)�	namespace)�os�celeryr   �environ�
+setdefault�app�config_from_object�autodiscover_tasks� �    �/app/court_parser/celery.py�<module>r      sK   �� 	� � �
+�
+� � �.�0G� H��^��� � � �-�� � B� � � � r   
 ----- File: D:\Development\court_system\court_parser\parser\__init__.py -----
 ----- File: D:\Development\court_system\court_parser\parser\admin.py -----
 from django.contrib import admin
@@ -2631,7 +2638,7 @@ def parser_status(request) -> JsonResponse:
             .then(data => {
                 document.getElementById("auto-status").innerHTML = `
                     <p class="status__text">${data.message}</p>
-                    <p class="status__text">До следующего парсинга: Автоматический парсинг не активен</p>`;
+                    <p class="status__text">До следующего парсинга: Парсинг не активен</p>`;
                 this.style.display = "none";
             })
             .catch(error => console.error("Ошибка:", error));
@@ -2664,7 +2671,7 @@ def parser_status(request) -> JsonResponse:
                 } else {
                     statusBox.innerHTML = `
                         <p class="status__text">Статус: Не активен</p>
-                        <p class="status__text">До следующего парсинга: Автоматический парсинг не активен</p>`;
+                        <p class="status__text">До следующего парсинга: Парсинг не активен</p>`;
                     document.getElementById("stop-auto-parse").style.display = "none";
                 }
             })
@@ -2738,12 +2745,10 @@ def parser_status(request) -> JsonResponse:
         {% endif %}
     </section>
 {% endblock %}
------ File: D:\Development\court_system\court_proxy\.dockerignore -----
-logs/
-.env
-docker-compose.yml
 ----- File: D:\Development\court_system\court_proxy\.env -----
 NGINX_LOG_LEVEL=info
+----- File: D:\Development\court_system\court_proxy\.htpasswd -----
+admin:$apr1$Rcd4I0W2$CDVJ4tZK8HNTVy33glx.Z/
 ----- File: D:\Development\court_system\court_proxy\docker-compose.yml -----
 services:
   proxy:
@@ -2812,14 +2817,14 @@ server {
     }
 
     # Login page for /judges/
-    location = /judges/ {
-        root /app/static;
-        try_files /login.html =404;
-    }
+    #location = /judges/ {
+    #    root /app/static;
+    #    try_files /login.html =404;
+    #}
 
     location /judges/ {
-        auth_basic "Restricted Area";
-        auth_basic_user_file /etc/nginx/.htpasswd;
+    #    auth_basic "Restricted Area";
+    #    auth_basic_user_file /etc/nginx/.htpasswd;
         proxy_pass $judges_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -2982,13 +2987,16 @@ server {
 </body>
 </html>
 ----- File: D:\Development\court_system\court_proxy\static\css\style.css -----
-/* Общие стили (Reset и базовые настройки) */
-:root {
+/* ===========================
+   БАЗОВЫЕ СТИЛИ
+   =========================== */
+
+   :root {
     --primary-bg: #232323;
     --secondary-bg: #2e2e2e;
     --accent-color: #f6d28e;
     --text-color: #e0e0e0;
-    --shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.4); /* 4px 12px */
+    --shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.4);
     --transition: all 0.3s;
     --danger-color: #c03333;
     --danger-hover: #d53b64;
@@ -3010,11 +3018,45 @@ body {
     flex-direction: column;
 }
 
-/* Контейнеры и Layout */
+/* ===========================
+   ТИПОГРАФИКА
+   =========================== */
+
+.section__title {
+    font-size: 2rem;
+    color: var(--accent-color);
+    text-align: center;
+    margin-bottom: 1.25rem;
+}
+
+.section__subtitle {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    margin: 1.25rem 0;
+    text-align: center;
+}
+
+.card__title {
+    font-size: 1.15rem;
+    color: var(--accent-color);
+    text-align: center;
+    margin-bottom: 0.3125rem;
+}
+
+.card__description {
+    font-size: 1rem;
+    color: #b0b0b0;
+    text-align: center;
+}
+
+/* ===========================
+   LAYOUT (КОНТЕЙНЕРЫ И СЕТКИ)
+   =========================== */
+
 .container {
     max-width: 100%;
     margin: 0 auto;
-    padding: 1.25rem; /* 20px */
+    padding: 1.25rem;
     flex: 1;
 }
 
@@ -3024,42 +3066,36 @@ body {
     flex: 1;
 }
 
-/* Типографика */
-.section__title {
-    font-size: 2rem;
-    color: var(--accent-color);
-    text-align: center;
-    margin-bottom: 1.25rem; /* 20px */
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.25rem;
 }
 
-.section__subtitle {
-    font-size: 1.5rem;
-    color: var(--accent-color);
-    margin: 1.25rem 0; /* 20px */
-    text-align: center;
+.thread-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1.25rem;
 }
 
-.card__title {
-    font-size: 1.15rem;
-    color: var(--accent-color);
-    text-align: center;
-    margin-bottom: 0.3125rem; /* 5px */
+.message-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
 }
 
-.card__description {
-    font-size: 1rem;
-    color: #b0b0b0;
-    text-align: center;
-}
+/* ===========================
+   КОМПОНЕНТЫ
+   =========================== */
 
-/* Шапка */
 .header {
     background: var(--primary-bg);
-    padding: 1.25rem 0; /* 20px */
-    box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.5); /* 2px 10px */
+    padding: 1.25rem 0;
+    box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
-    min-height: 5rem; /* 80px */
+    min-height: 5rem;
 }
 
 .header__title {
@@ -3068,18 +3104,17 @@ body {
     width: 100%;
 }
 
-/* Навигация */
 .nav-bar {
     display: flex;
     justify-content: center;
-    gap: 0.9375rem; /* 15px */
+    gap: 0.9375rem;
     width: 100%;
 }
 
 .nav-link {
     background: var(--secondary-bg);
-    border-radius: 0.5rem; /* 8px */
-    padding: 0.75rem 1.5625rem; /* 12px 25px */
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5625rem;
     text-decoration: none;
     color: var(--text-color);
     font-size: 1.2rem;
@@ -3091,14 +3126,13 @@ body {
 .nav-link:hover {
     background: #3a3a3a;
     color: var(--accent-color);
-    transform: translateY(-0.1875rem); /* -3px */
+    transform: translateY(-0.1875rem);
 }
 
-/* Карточки */
 .card {
     background: var(--primary-bg);
-    border-radius: 0.625rem; /* 10px */
-    padding: 1.25rem; /* 20px */
+    border-radius: 0.625rem;
+    padding: 1.25rem;
     box-shadow: var(--shadow);
     border: 2px solid var(--secondary-bg);
     transition: var(--transition);
@@ -3109,50 +3143,22 @@ body {
 }
 
 .card:hover {
-    transform: translateY(-0.3125rem); /* -5px */
+    transform: translateY(-0.3125rem);
     background: var(--secondary-bg);
     border-color: var(--accent-color);
 }
 
-/* Сетки */
-.button-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.25rem; /* 20px */
-}
-
-.thread-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1.25rem; /* 20px */
-}
-
-.message-list {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem; /* 20px */
-    margin-bottom: 1.25rem; /* 20px */
-}
-
-/* Сообщения */
 .message-block {
     background: var(--primary-bg);
-    border-radius: 0.625rem; /* 10px */
-    padding: 1.25rem; /* 20px */
+    border-radius: 0.625rem;
+    padding: 1.25rem;
     box-shadow: var(--shadow);
     border: 2px solid var(--secondary-bg);
-/*    transition: var(--transition);*/
-/*    will-change: transform;*/
 }
-/*
-.message-block:hover {
-    background: var(--secondary-bg);
-    border-color: var(--accent-color);
-}*/
 
 .message__header {
     font-size: 1.1rem;
-    margin-bottom: 1.25rem; /* 20px */
+    margin-bottom: 1.25rem;
     text-align: center;
 }
 
@@ -3175,13 +3181,12 @@ body {
     color: var(--text-color);
 }
 
-/* Формы */
 .parser-container {
     display: flex;
     justify-content: center;
 }
 
-.parser-card {
+.parser indicates-card {
     width: 100%;
     max-width: 100%;
     text-align: center;
@@ -3190,9 +3195,9 @@ body {
 .parser-form {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem; /* 20px */
+    gap: 1.25rem;
     align-items: center;
-    margin-top: 1.25rem; /* 20px */
+    margin-top: 1.25rem;
 }
 
 .form__group {
@@ -3204,19 +3209,19 @@ body {
 .form__label {
     font-size: 1rem;
     color: var(--text-color);
-    margin-bottom: 0.3125rem; /* 5px */
+    margin-bottom: 0.3125rem;
 }
 
 .form__input,
 textarea,
 input[type="datetime-local"] {
-    padding: 0.625rem; /* 10px */
+    padding: 0.625rem;
     border: none;
-    border-radius: 0.3125rem; /* 5px */
+    border-radius: 0.3125rem;
     background: var(--secondary-bg);
     color: var(--text-color);
     font-size: 1rem;
-    width: 12rem; /* 250px */
+    width: 12rem;
     transition: var(--transition);
     text-align: center;
     font-weight: bold;
@@ -3231,18 +3236,17 @@ input[type="datetime-local"]:focus {
 
 .form__buttons {
     display: flex;
-    gap: 0.625rem; /* 10px */
+    gap: 0.625rem;
     justify-content: center;
 }
 
-/* Кнопки */
 .button {
     display: inline-block;
-    padding: 0.75rem 1.5625rem; /* 12px 25px */
+    padding: 0.75rem 1.5625rem;
     background: var(--accent-color);
     color: #181818;
     text-decoration: none;
-    border-radius: 0.5rem; /* 8px */
+    border-radius: 0.5rem;
     font-weight: bold;
     font-size: 1rem;
     text-align: center;
@@ -3278,37 +3282,34 @@ input[type="datetime-local"]:focus {
     background: var(--danger-hover);
 }
 
-/* Статус */
 .status-box {
-    margin-top: 1.25rem; /* 20px */
-    padding: 0.9375rem; /* 15px */
+    margin-top: 1.25rem;
+    padding: 0.9375rem;
     background: var(--secondary-bg);
-    border-radius: 0.5rem; /* 8px */
-    box-shadow: inset 0 0.125rem 0.3125rem rgba(0, 0, 0, 0.3); /* 2px 5px */
+    border-radius: 0.5rem;
+    box-shadow: inset 0 0.125rem 0.3125rem rgba(0, 0, 0, 0.3);
 }
 
 .status__text {
     font-size: 1rem;
     color: var(--accent-color);
-    margin: 0.3125rem 0; /* 5px */
+    margin: 0.3125rem 0;
     text-align: center;
 }
 
-/* Навигационные ссылки */
 .threads-link {
     display: flex;
     justify-content: center;
-    margin: 1.25rem 0; /* 20px */
-    gap: 0.625rem; /* 10px */
+    margin: 1.25rem 0;
+    gap: 0.625rem;
 }
 
-/* Пагинация */
 .pagination {
-    margin-top: 1.875rem; /* 30px */
+    margin-top: 1.875rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.9375rem; /* 15px */
+    gap: 0.9375rem;
 }
 
 .pagination__info {
@@ -3316,16 +3317,14 @@ input[type="datetime-local"]:focus {
     font-size: 1rem;
 }
 
-/* Пустое состояние */
 .empty-text {
     grid-column: 1 / -1;
     text-align: center;
     font-size: 1.2rem;
     color: #b0b0b0;
-    padding: 1.25rem; /* 20px */
+    padding: 1.25rem;
 }
 
-/* Модальные окна */
 .modal {
     position: fixed;
     top: 0;
@@ -3341,32 +3340,31 @@ input[type="datetime-local"]:focus {
 
 .modal__content {
     background: var(--primary-bg);
-    padding: 1.25rem; /* 20px */
-    border-radius: 0.625rem; /* 10px */
+    padding: 1.25rem;
+    border-radius: 0.625rem;
     box-shadow: var(--shadow);
-    width: 25rem; /* 400px */
+    width: 25rem;
     text-align: center;
 }
 
 .modal__title {
     font-size: 1.5rem;
     color: var(--accent-color);
-    margin-bottom: 0.625rem; /* 10px */
+    margin-bottom: 0.625rem;
 }
 
 .modal__text {
     font-size: 1rem;
     color: var(--text-color);
-    margin-bottom: 0.9375rem; /* 15px */
+    margin-bottom: 0.9375rem;
 }
 
 .modal__buttons {
     display: flex;
-    gap: 0.625rem; /* 10px */
+    gap: 0.625rem;
     justify-content: center;
 }
 
-/* Ошибки */
 .error-section {
     text-align: center;
 }
@@ -3374,16 +3372,15 @@ input[type="datetime-local"]:focus {
 .error-message {
     font-size: 1.2rem;
     color: var(--danger-color);
-    margin: 1.25rem 0; /* 20px */
+    margin: 1.25rem 0;
 }
 
-/* Футер */
 .footer {
     background: var(--primary-bg);
-    padding: 1.25rem; /* 20px */
+    padding: 1.25rem;
     text-align: center;
     color: #b0b0b0;
-    box-shadow: 0 -0.125rem 0.625rem rgba(0, 0, 0, 0.5); /* -2px 10px */
+    box-shadow: 0 -0.125rem 0.625rem rgba(0, 0, 0, 0.5);
     width: 100%;
 }
 
@@ -3391,170 +3388,127 @@ input[type="datetime-local"]:focus {
     font-size: 1rem;
 }
 
-/* Таблица данных */
 .datasets-table {
-    width: 100%; /* Таблица занимает всю ширину контейнера */
-    border-collapse: separate; /* Для закруглений и теней */
-    border-spacing: 0; /* Убираем промежутки между ячейками */
-    background: var(--primary-bg); /* Фон как у карточек */
-    border-radius: 0.625rem; /* 10px, как у карточек */
-    box-shadow: var(--shadow); /* Тень как у карточек */
-    overflow: hidden; /* Чтобы закругления работали корректно */
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--primary-bg);
+    border-radius: 0.625rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
 }
 
 .datasets-table thead {
-    background: var(--secondary-bg); /* Цвет заголовков как у навигации */
+    background: var(--secondary-bg);
 }
 
 .datasets-table th {
-    padding: 0.5rem 2.3rem; /*ерху/снизу, 16px слева/справа для отступов от текста */
+    padding: 0.5rem 2.3rem;
     text-align: center;
-    color: var(--accent-color); /* Цвет текста как у заголовков */
+    color: var(--accent-color);
     font-weight: bold;
     text-transform: uppercase;
     font-size: 1rem;
-    border-bottom: 2px solid var(--accent-color); /* Линия под заголовками */
-    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
-    min-width: max-content; /* Ширина ячейки чуть больше текста */
+    border-bottom: 2px solid var(--accent-color);
+    border-right: 1px solid var(--secondary-bg);
+    min-width: max-content;
 }
 
 .datasets-table tbody tr {
-    transition: var(--transition); /* Плавный переход как у карточек */
+    transition: var(--transition);
 }
 
 .datasets-table tbody tr:hover {
-    background: var(--secondary-bg); /* Цвет фона при hover как у карточек */
+    background: var(--secondary-bg);
 }
 
 .datasets-table td {
-    padding: 0.45rem 0.45rem; /* 6px сверху/снизу (в 2 раза меньше 0.75rem), 16px слева/справа */
+    padding: 0.45rem 0.45rem;
     text-align: center;
-    color: var(--text-color); /* Цвет текста как везде */
+    color: var(--text-color);
     font-size: 0.95rem;
-    border-bottom: 1px solid var(--secondary-bg); /* Разделитель строк */
-    border-right: 1px solid var(--secondary-bg); /* Вертикальный разделитель */
-    vertical-align: middle; /* Выравнивание содержимого по центру */
+    border-bottom: 1px solid var(--secondary-bg);
+    border-right: 1px solid var(--secondary-bg);
+    vertical-align: middle;
 }
 
-/* Убираем лишние границы */
 .datasets-table th:last-child,
 .datasets-table td:last-child {
-    border-right: none; /* Убираем правую границу у последней ячейки в строке */
+    border-right: none;
 }
 
 .datasets-table tbody tr:last-child td {
-    border-bottom: none; /* Убираем нижнюю границу у последней строки */
+    border-bottom: none;
 }
 
-/* Ссылки в таблице */
 .datasets-table a {
-    color: var(--accent-color); /* Цвет ссылок как у акцентов */
+    color: var(--accent-color);
     text-decoration: none;
     transition: var(--transition);
 }
 
 .datasets-table a:hover {
     text-decoration: underline;
-    color: #e8c074; /* Чуть светлее при hover, как у кнопок */
+    color: #e8c074;
 }
 
-/* Поле ввода примечаний */
 .datasets-table td:has(.form__input) {
-    padding: 0; /* Убираем отступы в ячейке с textarea для плотного прилегания */
+    padding: 0;
     display: flex;
-    align-items: center; /* Центрируем вертикально */
-    justify-content: center; /* Центрируем горизонтально */
+    align-items: stretch;
+    justify-content: center;
 }
 
 .datasets-table .form__input {
-    width: 100%; /* Ширина на всю ячейку */
-    height: 100%; /* Высота на всю ячейку */
-    min-height: 1.5rem; /* Уменьшаем до 24px для соответствия узким строкам */
-    resize: vertical; /* Возможность изменения высоты */
+    width: 100%;
+    height: 100%;
+    min-height: 1.5rem;
+    resize: vertical;
     text-align: left;
     background: var(--secondary-bg);
     border: none;
-    border-radius: 0.3125rem; /* 5px */
+    border-radius: 0.3125rem;
     color: var(--text-color);
-    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
-    margin: 0; /* Убираем внешние отступы */
-    box-sizing: border-box; /* Учитываем padding в размерах */
+    padding: 0.25rem 0.625rem;
+    margin: 0;
+    box-sizing: border-box;
+    transition: var(--transition);
 }
 
 .datasets-table .form__input:focus {
-    background: #3a3a3a; /* Цвет фона при фокусе */
-/*  outline: 2px solid var(--accent-color); /* Обводка при фокусе */
+    background: #3a3a3a;
+    outline: none;
 }
 
-/* Адаптивность */
-@media (max-width: 75rem) { /* 1200px */
-    .datasets-table {
-        font-size: 0.9rem; /* Уменьшаем шрифт для компактности */
-    }
-}
-
-@media (max-width: 48rem) { /* 768px */
-    .datasets-table {
-        display: block; /* Переключаем на блочный режим */
-        overflow-x: auto; /* Горизонтальная прокрутка */
-        white-space: nowrap; /* Предотвращаем перенос текста */
-    }
-
-    .datasets-table thead,
-    .datasets-table tbody,
-    .datasets-table tr,
-    .datasets-table th,
-    .datasets-table td {
-        display: inline-block;
-        width: 100%; /* Каждая строка занимает всю ширину */
-    }
-
-    .datasets-table th,
-    .datasets-table td {
-        text-align: left; /* Выравнивание слева для читаемости */
-        padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа для мобильных */
-    }
-
-    .datasets-table tbody tr {
-        border-bottom: 1px solid var(--secondary-bg);
-        margin-bottom: 0.625rem; /* 10px */
-    }
-
-    .datasets-table tbody tr:hover {
-        transform: none; /* Отключаем подъём на маленьких экранах */
-    }
-}
-
-/* Форма фильтров */
 .filter-form {
-    margin-bottom: 1.25rem; /* 20px */
+    margin-bottom: 1.25rem;
 }
 
 .filter-box {
     display: flex;
-    justify-content: space-between; /* Фильтры слева, кнопки справа */
+    justify-content: space-between;
     align-items: flex-end;
     flex-wrap: wrap;
-    gap: 0.625rem; /* 10px */
-    padding: 1.25rem; /* 20px */
-    background: var(--primary-bg); /* #232323 */
-    border: 2px solid var(--secondary-bg); /* #2e2e2e */
-    border-radius: 0.625rem; /* 10px */
+    gap: 0.625rem;
+    padding: 1.25rem;
+    background: var(--primary-bg);
+    border: 2px solid var(--secondary-bg);
+    border-radius: 0.625rem;
     box-shadow: var(--shadow);
     transition: var(--transition);
-    align-items: center
+    align-items: center;
 }
 
 .filter-box__filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.625rem; /* 10px */
+    gap: 0.625rem;
     justify-content: flex-start;
 }
 
 .filter-box__buttons {
     display: flex;
-    gap: 0.625rem; /* 10px */
+    gap: 0.625rem;
     justify-content: flex-end;
 }
 
@@ -3562,19 +3516,19 @@ input[type="datetime-local"]:focus {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 10rem; /* 160px */
+    min-width: 10rem;
 }
 
 .filter-box .form__input,
 .filter-box input[type="date"],
 .filter-box select {
     width: 100%;
-    min-width: 8rem; /* 128px */
-    padding: 0.625rem; /* 10px */
-    background: var(--secondary-bg); /* #2e2e2e */
-    color: var(--text-color); /* #e0e0e0 */
+    min-width: 8rem;
+    padding: 0.625rem;
+    background: var(--secondary-bg);
+    color: var(--text-color);
     border: none;
-    border-radius: 0.3125rem; /* 5px */
+    border-radius: 0.3125rem;
     font-size: 1rem;
     text-align: center;
     transition: var(--transition);
@@ -3588,316 +3542,245 @@ input[type="datetime-local"]:focus {
 
 .filter-box .form__label {
     font-size: 1rem;
-    color: var(--text-color); /* #e0e0e0 */
-    margin-bottom: 0.3125rem; /* 5px */
-}
-
-/* Таблица данных - обновление стилей для textarea */
-.datasets-table td:has(.form__input) {
-    padding: 0;
-    display: flex;
-    align-items: stretch; /* Растягиваем содержимое по высоте */
-    justify-content: center;
-}
-
-.datasets-table .form__input {
-    width: 100%;
-    height: 100%; /* Полная высота ячейки */
-    min-height: 1.5rem; /* Минимальная высота */
-    resize: vertical;
-    text-align: left;
-    background: var(--secondary-bg);
-    border: none;
-    border-radius: 0.3125rem; /* 5px */
     color: var(--text-color);
-    padding: 0.25rem 0.625rem; /* 4px сверху/снизу, 10px слева/справа */
-    margin: 0;
-    box-sizing: border-box;
-    transition: var(--transition);
+    margin-bottom: 0.3125rem;
 }
 
-.datasets-table .form__input:focus {
-    background: #3a3a3a;
-    outline: none; /* Убираем стандартную обводку */
-}
-
-/* Адаптивность */
-@media (max-width: 48rem) { /* 768px */
-    .filter-box {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .filter-box__filters {
-        justify-content: center;
-        width: 100%;
-    }
-    
-    .filter-box__buttons {
-        justify-content: center;
-        margin-top: 0.625rem; /* 10px */
-    }
-    
-    .filter-box .form__group {
-        width: 100%;
-        max-width: 15rem; /* 240px */
-    }
-}
-/* Базовый стиль для ячеек с временем */
 .time-cell {
-    padding: 0; /* Убираем стандартные отступы ячейки, чтобы span полностью управлял пространством */
+    padding: 0;
 }
 
-/* Общий стиль для span внутри ячеек */
 .time-cell span {
-    display: block; /* Делаем span блочным, чтобы он заполнял ячейку */
-    padding: 1rep 1rep; /* Фиксированные отступы для всех случаев */
-    width: 100%; /* Полная ширина ячейки */
-    height: 100%; /* Полная высота ячейки */
+    display: block;
+    padding: 1rep 1rep;
+    width: 100%;
+    height: 100%;
     font-weight: bold;
-    box-sizing: border-box; /* Учитываем padding в размерах */
+    box-sizing: border-box;
 }
 
-/* Цвет фона для ячеек с индикацией (полупрозрачный с закруглением) */
 .time-cell.colored span.time-indicator-0 {
-    background-color: rgba(142, 214, 152, 0.7); /* Бирюзовый, #34C4B5 с прозрачностью */
-    color: #333333; /* Тёмный текст для читаемости */
-    border-radius: 6px; /* Скругление углов */
+    background-color: rgba(142, 214, 152, 0.7);
+    color: #333333;
+    border-radius: 6px;
 }
+
 .time-cell.colored span.time-indicator-1 {
-    background-color: rgba(142, 214, 152, 0.7); /* Светло-зелёный, #5AC8A8 */
+    background-color: rgba(142, 214, 152, 0.7);
     color: #333333;
     border-radius: 6px;
 }
+
 .time-cell.colored span.time-indicator-2 {
-    background-color: rgba(142, 214, 152, 0.7); /* Мягкий зелёный, #8ED698 */
+    background-color: rgba(142, 214, 152, 0.7);
     color: #333333;
     border-radius: 6px;
 }
+
 .time-cell.colored span.time-indicator-3 {
-    background-color: rgba(244, 211, 94, 0.7); /* Золотистый, #F4D35E */
+    background-color: rgba(244, 211, 94, 0.7);
     color: #333333;
     border-radius: 6px;
 }
+
 .time-cell.colored span.time-indicator-4 {
-    background-color: rgba(244, 162, 97, 0.7); /* Тёплый оранжевый, #F4A261 */
+    background-color: rgba(244, 162, 97, 0.7);
     color: #333333;
     border-radius: 6px;
 }
+
 .time-cell.colored span.time-indicator-5 {
-    background-color: rgba(238, 123, 91, 0.7); /* Коралловый, #EE7B5B */
+    background-color: rgba(238, 123, 91, 0.7);
     color: #333333;
     border-radius: 6px;
 }
+
 .time-cell.colored span.time-indicator-6 {
-    background-color: rgba(230, 57, 70, 0.7); /* Мягкий красный, #E63946 */
+    background-color: rgba(230, 57, 70, 0.7);
     color: #333333;
     border-radius: 6px;
 }
 
-/* Цвет текста для случаев без фона (без изменений) */
 .time-cell span.text-indicator-0 {
-    color: #8ED698 !important; /* Бирюзовый */
+    color: #8ED698 !important;
 }
+
 .time-cell span.text-indicator-1 {
-    color: #8ED698 !important; /* Светло-зелёный */
+    color: #8ED698 !important;
 }
+
 .time-cell span.text-indicator-2 {
-    color: #8ED698 !important; /* Мягкий зелёный */
+    color: #8ED698 !important;
 }
+
 .time-cell span.text-indicator-3 {
-    color: #F4D35E !important; /* Золотистый */
+    color: #F4D35E !important;
 }
+
 .time-cell span.text-indicator-4 {
-    color: #F4A261 !important; /* Тёплый оранжевый */
+    color: #F4A261 !important;
 }
+
 .time-cell span.text-indicator-5 {
-    color: #EE7B5B !important; /* Коралловый */
+    color: #EE7B5B !important;
 }
+
 .time-cell span.text-indicator-6 {
-    color: #E63946 !important; /* Мягкий красный */
+    color: #E63946 !important;
 }
 
-@media (max-width: 48rem) { /* 768px */
-    body {
-        font-size: 0.9rem; /* Уменьшаем базовый шрифт для компактности */
-    }
+/* ===========================
+   АДАПТИВНОСТЬ
+   =========================== */
 
-    .container {
-        padding: 0.625rem; /* 10px вместо 20px */
-    }
-
-    .section__title {
-        font-size: 1.5rem; /* Уменьшаем заголовки */
-    }
-
-    .section__subtitle {
-        font-size: 1.25rem;
-    }
-}
-
-@media (max-width: 30rem) { /* 480px */
-    body {
-        font-size: 0.85rem;
-    }
-
-    .container {
-        padding: 0.3125rem; /* 5px */
-    }
-
-    .section__title {
-        font-size: 1.25rem;
-    }
-
-    .section__subtitle {
-        font-size: 1rem;
+@media (max-width: 75rem) {
+    .datasets-table {
+        font-size: 0.9rem;
     }
 }
 
 @media (max-width: 48rem) {
+    body {
+        font-size: 0.9rem;
+    }
+
+    .container {
+        padding: 0.625rem;
+    }
+
+    .section__title {
+        font-size: 1.5rem;
+    }
+
+    .section__subtitle {
+        font-size: 1.25rem;
+    }
+
     .nav-bar {
-        flex-direction: column; /* Вертикальное расположение */
-        gap: 0.625rem; /* 10px */
+        flex-direction: column;
+        gap: 0.625rem;
         padding: 0.625rem;
     }
 
     .nav-link {
-        width: 100%; /* Полная ширина */
-        padding: 0.625rem; /* Уменьшаем отступы */
+        width: 100%;
+        padding: 0.625rem;
         font-size: 1rem;
     }
-}
 
-@media (max-width: 30rem) {
-    .nav-link {
-        font-size: 0.9rem;
-        padding: 0.5rem;
-    }
-}
-
-@media (max-width: 48rem) {
     .button-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2 колонки вместо 5 */
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .thread-grid {
-        grid-template-columns: 1fr; /* Одна колонка */
+        grid-template-columns: 1fr;
     }
 
     .card {
-        padding: 0.9375rem; /* 15px вместо 20px */
-    }
-}
-
-@media (max-width: 30rem) {
-    .button-grid {
-        grid-template-columns: 1fr; /* Одна колонка */
+        padding: 0.9375rem;
     }
 
-    .card__title {
-        font-size: 1rem;
-    }
-
-    .card__description {
-        font-size: 0.9rem;
-    }
-}
-
-@media (max-width: 48rem) {
     .datasets-table {
-        font-size: 0.85rem; /* Уменьшаем шрифт */
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .datasets-table thead,
+    .datasets-table tbody,
+    .datasets-table tr,
+    .datasets-table th,
+    .datasets-table td {
+        display: inline-block;
+        width: 100%;
     }
 
     .datasets-table th,
     .datasets-table td {
-        padding: 0.5rem; /* Уменьшаем отступы */
+        text-align: left;
+        padding: 0.25rem 0.625rem;
     }
 
-    .datasets-table .form__input {
-        min-height: 2rem; /* Увеличиваем минимальную высоту textarea */
+    .datasets-table tbody tr {
+        border-bottom: 1px solid var(--secondary-bg);
+        margin-bottom: 0.625rem;
+    }
+
+    .datasets-table tbody tr:hover {
+        transform: none;
+    }
+
+    .datasets-table {
         font-size: 0.85rem;
-        padding: 0.3125rem; /* 5px */
-    }
-}
-
-@media (max-width: 30rem) {
-    .datasets-table {
-        font-size: 0.75rem;
     }
 
     .datasets-table th,
     .datasets-table td {
-        padding: 0.3125rem; /* 5px */
+        padding: 0.5rem;
     }
 
     .datasets-table .form__input {
-        min-height: 1.75rem;
-        font-size: 0.75rem;
+        min-height: 2rem;
+        font-size: 0.85rem;
+        padding: 0.3125rem;
     }
-}
 
-@media (max-width: 48rem) {
     .filter-box {
-        padding: 0.9375rem; /* 15px вместо 20px */
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .filter-box__filters {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .filter-box__buttons {
+        justify-content: center;
+        margin-top: 0.625rem;
     }
 
     .filter-box .form__group {
-        min-width: 8rem; /* 128px вместо 160px */
+        width: 100%;
+        max-width: 15rem;
+    }
+
+    .filter-box {
+        padding: 0.9375rem;
+    }
+
+    .filter-box .form__group {
+        min-width: 8rem;
     }
 
     .filter-box .form__input,
     .filter-box input[type="date"],
     .filter-box select {
-        min-width: 6rem; /* 96px вместо 128px */
+        min-width: 6rem;
         font-size: 0.9rem;
     }
 
     .filter-box__buttons {
-        flex-direction: column; /* Кнопки вертикально */
+        flex-direction: column;
         width: 100%;
     }
 
     .filter-box__buttons .button {
         width: 100%;
-        padding: 0.625rem; /* Уменьшаем отступы */
-    }
-}
-
-@media (max-width: 30rem) {
-    .filter-box .form__group {
-        min-width: 100%; /* Полная ширина */
+        padding: 0.625rem;
     }
 
-    .filter-box .form__input,
-    .filter-box input[type="date"],
-    .filter-box select {
-        min-width: 100%;
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 48rem) {
     .button {
-        padding: 0.625rem 1.25rem; /* Уменьшаем, но сохраняем удобство */
+        padding: 0.625rem 1.25rem;
         font-size: 0.9rem;
-        min-width: 6rem; /* 96px */
-        min-height: 2.5rem; /* 40px для удобства нажатия */
+        min-width: 6rem;
+        min-height: 2.5rem;
     }
-}
 
-@media (max-width: 30rem) {
-    .button {
-        font-size: 0.85rem;
-        min-width: 5rem; /* 80px */
-        min-height: 2.25rem; /* 36px */
-    }
-}
-
-@media (max-width: 48rem) {
     .modal__content {
-        width: 90%; /* 90% ширины экрана */
-        max-width: 20rem; /* 320px */
-        padding: 0.9375rem; /* 15px */
+        width: 90%;
+        max-width: 20rem;
+        padding: 0.9375rem;
     }
 
     .modal__title {
@@ -3912,74 +3795,20 @@ input[type="datetime-local"]:focus {
         padding: 0.625rem;
         font-size: 0.9rem;
     }
-}
 
-@media (max-width: 30rem) {
-    .modal__content {
-        max-width: 18rem; /* 288px */
-        padding: 0.625rem; /* 10px */
-    }
-
-    .modal__title {
-        font-size: 1rem;
-    }
-
-    .modal__text {
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 48rem) {
     .footer {
-        padding: 0.9375rem; /* 15px */
+        padding: 0.9375rem;
     }
 
     .footer__text {
         font-size: 0.9rem;
     }
-}
 
-@media (max-width: 30rem) {
-    .footer {
-        padding: 0.625rem; /* 10px */
-    }
-
-    .footer__text {
-        font-size: 0.85rem;
-    }
-}
-
-.message__content,
-.datasets-table .form__input {
-    overflow-y: auto; /* Вертикальная прокрутка при необходимости */
-    max-height: 10rem; /* Ограничение высоты */
-}
-
-@media (max-width: 48rem) {
     .message__content,
     .datasets-table .form__input {
-        max-height: 6rem; /* Уменьшаем на мобильных */
+        max-height: 6rem;
     }
-}
 
-@media (max-width: 30rem) {
-    .card__description:nth-child(n+2) {
-        display: none; /* Скрываем дополнительные описания в карточках */
-    }
-}
-
-.datasets-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-/*
-.datasets-table th,
-.datasets-table td {
-    padding: 1rem;
-    text-align: left;
-}
-*/
-@media (max-width: 48rem) {
     .datasets-table {
         display: block;
         width: 100%;
@@ -4011,17 +3840,98 @@ input[type="datetime-local"]:focus {
 }
 
 @media (max-width: 30rem) {
+    body {
+        font-size: 0.85rem;
+    }
+
+    .container {
+        padding: 0.3125rem;
+    }
+
+    .section__title {
+        font-size: 1.25rem;
+    }
+
+    .section__subtitle {
+        font-size: 1rem;
+    }
+
+    .nav-link {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+
+    .button-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card__title {
+        font-size: 1rem;
+    }
+
+    .card__description {
+        font-size: 0.9rem;
+    }
+
+    .card__description:nth-child(n+2) {
+        display: none;
+    }
+
+    .datasets-table {
+        font-size: 0.75rem;
+    }
+
+    .datasets-table th,
+    .datasets-table td {
+        padding: 0.3125rem;
+    }
+
+    .datasets-table .form__input {
+        min-height: 1.75rem;
+        font-size: 0.75rem;
+    }
+
+    .filter-box .form__group {
+        min-width: 100%;
+    }
+
+    .filter-box .form__input,
+    .filter-box input[type="date"],
+    .filter-box select {
+        min-width: 100%;
+        font-size: 0.85rem;
+    }
+
+    .button {
+        font-size: 0.85rem;
+        min-width: 5rem;
+        min-height: 2.25rem;
+    }
+
+    .modal__content {
+        max-width: 18rem;
+        padding: 0.625rem;
+    }
+
+    .modal__title {
+        font-size: 1rem;
+    }
+
+    .modal__text {
+        font-size: 0.85rem;
+    }
+
+    .footer {
+        padding: 0.625rem;
+    }
+
+    .footer__text {
+        font-size: 0.85rem;
+    }
+
     .datasets-table th,
     .datasets-table td {
         padding: 0.5rem;
         font-size: 0.85rem;
     }
-}
-
-.status-box {
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-}
-.status-box.visible {
-    opacity: 1;
 }

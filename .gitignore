@@ -1,7 +1,6 @@
 __pycache__/
 venv/
 logs/
-*.dockerignore
 all_code.txt
 combined_files.txt
 html_css.ps1
