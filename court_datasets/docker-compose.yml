@@ -14,7 +14,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
     env_file:
       - .env
 
@@ -28,7 +27,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
     env_file:
       - .env
 
@@ -54,7 +52,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    restart: unless-stopped
     env_file:
       - .env
 
@@ -76,7 +73,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    restart: unless-stopped
     env_file:
       - .env
 

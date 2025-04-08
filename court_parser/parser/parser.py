@@ -72,7 +72,7 @@ class ForumParser:
             })
         return threads
 
-    def parse_all_threads(self, pages: int, max_pages_per_run: int = 10) -> List[Dict]:
+    def parse_all_threads(self, pages: int, max_pages_per_run: int = 100) -> List[Dict]:
         """
         Парсит все треды с указанного количества страниц.
 

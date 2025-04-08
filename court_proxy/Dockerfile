@@ -1,6 +1,6 @@
-FROM nginx:latest
+FROM openresty/openresty:latest
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY static/ /app/static/
 
 RUN chmod -R 644 /app/static/ && find /app/static/ -type d -exec chmod 755 {} \;

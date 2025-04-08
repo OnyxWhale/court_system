@@ -8,6 +8,8 @@ def update_claims_data():
     threads = ForumThread.objects.using("parser_db").prefetch_related("threadmessage_set").order_by("-created_at")
     claims_data = []
     for thread in threads:
+        if len(thread.title) <= 5:
+            continue
         claim_data = get_claim_data(thread)
         note = ClaimNote.objects.filter(thread_id=thread.id).first()
         claim_data["note"] = note.note if note else ""

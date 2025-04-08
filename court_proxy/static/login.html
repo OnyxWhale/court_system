@@ -1,59 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Court System</title>
+    <title>Вход - Court System</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="modal" id="login-modal">
-        <div class="modal__content">
-            <h2 class="modal__title">Закрытый доступ</h2>
-            <p class="modal__text">Введите свои учетные данные для доступа к разделу судей.</p>
-            <form class="parser-form" id="login-form">
-                <div class="form__group">
-                    <label class="form__label" for="username">Логин</label>
-                    <input class="form__input" type="text" id="username" name="username" required>
+    <header class="header">
+        <h1 class="header__title">Court System</h1>
+    </header>
+    <main class="container">
+        <section class="section">
+            <h1 class="section__title">Вход</h1>
+            <form class="parser-form" method="POST" action="/auth">
+                <div class="message-block">
+                    <div class="form__group">
+                        <label class="form__label" for="username">Имя пользователя</label>
+                        <input class="form__input" type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form__group">
+                        <label class="form__label" for="password">Пароль</label>
+                        <input class="form__input" type="password" id="password" name="password" required>
+                    </div>
                 </div>
-                <div class="form__group">
-                    <label class="form__label" for="password">Пароль</label>
-                    <input class="form__input" type="password" id="password" name="password" required>
-                </div>
+                <input type="hidden" name="redirect" value="">
                 <div class="form__buttons">
-                    <button class="button" type="submit">Войти</button>
-                    <button class="button button--secondary" type="button" onclick="window.location.href='/'">Отмена</button>
+                    <button type="submit" class="button">Войти</button>
+                    <a href="/" class="button button--secondary">Назад</a>
                 </div>
             </form>
-            <div class="status-box" id="error-message" style="display: none;">
-                <p class="status__text error-message">Неверные логин или пароль</p>
+            <div class="status-box" id="error" style="display: none;">
+                <p class="status__text error-message">Неверное имя пользователя или пароль</p>
             </div>
-        </div>
-    </div>
-
+        </section>
+    </main>
+    <footer class="footer">
+        <p class="footer__text">© 2025 Court System | by Atlas Continental</p>
+    </footer>
     <script>
-        document.getElementById('login-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
-
-            // Mock authentication (replace with real logic later)
-            const validUsername = 'admin'; // Placeholder
-            const validPassword = 'securepassword'; // Placeholder
-
-            if (username === validUsername && password === validPassword) {
-                // Simulate successful login by redirecting to /judges/
-                window.location.href = '/judges/';
-            } else {
-                // Show error message
-                errorMessage.style.display = 'block';
-                setTimeout(() => {
-                    errorMessage.style.display = 'none';
-                }, 5000); // Hide after 3 seconds
-            }
-        });
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error')) {
+            document.getElementById('error').style.display = 'block';
+        }
+        document.querySelector('input[name="redirect"]').value = urlParams.get('redirect') || '';
     </script>
 </body>
 </html>

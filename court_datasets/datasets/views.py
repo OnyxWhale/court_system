@@ -44,6 +44,9 @@ class DatasetsListView(ListView):
             claims_data = []
             try:
                 for thread in self.get_queryset():
+                    # Пропускаем темы с заголовком длиной 5 символов и меньше
+                    if len(thread.title) <= 5:
+                        continue
                     claim_data = get_claim_data(thread)
                     note = ClaimNote.objects.filter(thread_id=thread.id).first()
                     claim_data["note"] = note.note if note else ""
@@ -59,6 +62,9 @@ class DatasetsListView(ListView):
             except CeleryOperationalError as e:
                 print(f"Ошибка Celery: {e}")
 
+        # Фильтрация данных из кэша: исключаем темы с заголовком ≤ 5 символов
+        filtered_claims_data = [claim for claim in claims_data if len(claim["title"]) > 5]
+
         # Получение фильтров из GET-параметров
         title_filter = self.request.GET.get("title", "").strip()
         date_from = self.request.GET.get("date_from")
@@ -69,7 +75,7 @@ class DatasetsListView(ListView):
         urgent_filter = self.request.GET.get("urgent")
 
         # Фильтрация данных
-        filtered_data = claims_data or []
+        filtered_data = filtered_claims_data
         if title_filter:
             filtered_data = [claim for claim in filtered_data if title_filter.lower() in claim["title"].lower()]
         if date_from:
@@ -107,7 +113,7 @@ class DatasetsListView(ListView):
             ]
 
         # Получение уникальных судей
-        judges = sorted(set(claim["leading_judges"] for claim in claims_data if claim["leading_judges"]))
+        judges = sorted(set(claim["leading_judges"] for claim in filtered_claims_data if claim["leading_judges"]))
 
         # Проверка необходимости пагинации
         show_pagination = len(filtered_data) > self.paginate_by
