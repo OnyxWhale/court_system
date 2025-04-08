@@ -9,6 +9,10 @@ __pycache__/
 venv/
 logs/
 *.dockerignore
+----- File: D:\Development\court_system\req.txt -----
+apt install apache2-utils
+court_system\court_proxy\
+htpasswd -c .htpasswd admin
 ----- File: D:\Development\court_system\script_all.ps1 -----
 # Укажите путь к вашему проекту и папке, которую нужно исключить
 $projectPath = "D:\Development\court_system"
@@ -1490,7 +1494,7 @@ def add_class(field, css_class):
             const submitButton = document.getElementById("confirm-submit");
             const cancelButton = document.getElementById("confirm-cancel");
 
-            modal.style.display = "block";
+            modal.style.display = "flex";
             passwordInput.value = "";
             errorMessage.style.display = "none";
 
@@ -2749,6 +2753,7 @@ services:
     volumes:
       - ./static:/app/static
       - ./logs:/var/log/nginx
+      - ./.htpasswd:/etc/nginx/.htpasswd
     networks:
       - court_network
     env_file:
@@ -2806,7 +2811,15 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
+    # Login page for /judges/
+    location = /judges/ {
+        root /app/static;
+        try_files /login.html =404;
+    }
+
     location /judges/ {
+        auth_basic "Restricted Area";
+        auth_basic_user_file /etc/nginx/.htpasswd;
         proxy_pass $judges_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -2834,8 +2847,11 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
+    # Обработка ошибок
+    error_page 500 502 503 504 /50x.html;
     location = /50x.html {
         root /app/static;
+        internal;  # Делает страницу доступной только для обработки ошибок
     }
 }
 ----- File: D:\Development\court_system\court_proxy\static\50x.html -----
@@ -2903,6 +2919,66 @@ server {
     <footer class="footer">
         <p class="footer__text">© 2025 Court System | by Atlas Continental</p>
     </footer>
+</body>
+</html>
+----- File: D:\Development\court_system\court_proxy\static\login.html -----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Court System</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="modal" id="login-modal">
+        <div class="modal__content">
+            <h2 class="modal__title">Закрытый доступ</h2>
+            <p class="modal__text">Введите свои учетные данные для доступа к разделу судей.</p>
+            <form class="parser-form" id="login-form">
+                <div class="form__group">
+                    <label class="form__label" for="username">Логин</label>
+                    <input class="form__input" type="text" id="username" name="username" required>
+                </div>
+                <div class="form__group">
+                    <label class="form__label" for="password">Пароль</label>
+                    <input class="form__input" type="password" id="password" name="password" required>
+                </div>
+                <div class="form__buttons">
+                    <button class="button" type="submit">Войти</button>
+                    <button class="button button--secondary" type="button" onclick="window.location.href='/'">Отмена</button>
+                </div>
+            </form>
+            <div class="status-box" id="error-message" style="display: none;">
+                <p class="status__text error-message">Неверные логин или пароль</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            // Mock authentication (replace with real logic later)
+            const validUsername = 'admin'; // Placeholder
+            const validPassword = 'securepassword'; // Placeholder
+
+            if (username === validUsername && password === validPassword) {
+                // Simulate successful login by redirecting to /judges/
+                window.location.href = '/judges/';
+            } else {
+                // Show error message
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 5000); // Hide after 3 seconds
+            }
+        });
+    </script>
 </body>
 </html>
 ----- File: D:\Development\court_system\court_proxy\static\css\style.css -----
@@ -3940,4 +4016,12 @@ input[type="datetime-local"]:focus {
         padding: 0.5rem;
         font-size: 0.85rem;
     }
+}
+
+.status-box {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+.status-box.visible {
+    opacity: 1;
 }

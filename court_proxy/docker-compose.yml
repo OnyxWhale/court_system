@@ -6,6 +6,7 @@ services:
     volumes:
       - ./static:/app/static
       - ./logs:/var/log/nginx
+      - ./.htpasswd:/etc/nginx/.htpasswd
     networks:
       - court_network
     env_file:

@@ -76,7 +76,7 @@
             .then(data => {
                 document.getElementById("auto-status").innerHTML = `
                     <p class="status__text">${data.message}</p>
-                    <p class="status__text">До следующего парсинга: Автоматический парсинг не активен</p>`;
+                    <p class="status__text">До следующего парсинга: Парсинг не активен</p>`;
                 this.style.display = "none";
             })
             .catch(error => console.error("Ошибка:", error));
@@ -109,7 +109,7 @@
                 } else {
                     statusBox.innerHTML = `
                         <p class="status__text">Статус: Не активен</p>
-                        <p class="status__text">До следующего парсинга: Автоматический парсинг не активен</p>`;
+                        <p class="status__text">До следующего парсинга: Парсинг не активен</p>`;
                     document.getElementById("stop-auto-parse").style.display = "none";
                 }
             })
