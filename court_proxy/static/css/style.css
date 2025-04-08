@@ -733,3 +733,303 @@ input[type="datetime-local"]:focus {
 .time-cell span.text-indicator-6 {
     color: #E63946 !important; /* Мягкий красный */
 }
+
+@media (max-width: 48rem) { /* 768px */
+    body {
+        font-size: 0.9rem; /* Уменьшаем базовый шрифт для компактности */
+    }
+
+    .container {
+        padding: 0.625rem; /* 10px вместо 20px */
+    }
+
+    .section__title {
+        font-size: 1.5rem; /* Уменьшаем заголовки */
+    }
+
+    .section__subtitle {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 30rem) { /* 480px */
+    body {
+        font-size: 0.85rem;
+    }
+
+    .container {
+        padding: 0.3125rem; /* 5px */
+    }
+
+    .section__title {
+        font-size: 1.25rem;
+    }
+
+    .section__subtitle {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 48rem) {
+    .nav-bar {
+        flex-direction: column; /* Вертикальное расположение */
+        gap: 0.625rem; /* 10px */
+        padding: 0.625rem;
+    }
+
+    .nav-link {
+        width: 100%; /* Полная ширина */
+        padding: 0.625rem; /* Уменьшаем отступы */
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 30rem) {
+    .nav-link {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 48rem) {
+    .button-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 колонки вместо 5 */
+    }
+
+    .thread-grid {
+        grid-template-columns: 1fr; /* Одна колонка */
+    }
+
+    .card {
+        padding: 0.9375rem; /* 15px вместо 20px */
+    }
+}
+
+@media (max-width: 30rem) {
+    .button-grid {
+        grid-template-columns: 1fr; /* Одна колонка */
+    }
+
+    .card__title {
+        font-size: 1rem;
+    }
+
+    .card__description {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 48rem) {
+    .datasets-table {
+        font-size: 0.85rem; /* Уменьшаем шрифт */
+    }
+
+    .datasets-table th,
+    .datasets-table td {
+        padding: 0.5rem; /* Уменьшаем отступы */
+    }
+
+    .datasets-table .form__input {
+        min-height: 2rem; /* Увеличиваем минимальную высоту textarea */
+        font-size: 0.85rem;
+        padding: 0.3125rem; /* 5px */
+    }
+}
+
+@media (max-width: 30rem) {
+    .datasets-table {
+        font-size: 0.75rem;
+    }
+
+    .datasets-table th,
+    .datasets-table td {
+        padding: 0.3125rem; /* 5px */
+    }
+
+    .datasets-table .form__input {
+        min-height: 1.75rem;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 48rem) {
+    .filter-box {
+        padding: 0.9375rem; /* 15px вместо 20px */
+    }
+
+    .filter-box .form__group {
+        min-width: 8rem; /* 128px вместо 160px */
+    }
+
+    .filter-box .form__input,
+    .filter-box input[type="date"],
+    .filter-box select {
+        min-width: 6rem; /* 96px вместо 128px */
+        font-size: 0.9rem;
+    }
+
+    .filter-box__buttons {
+        flex-direction: column; /* Кнопки вертикально */
+        width: 100%;
+    }
+
+    .filter-box__buttons .button {
+        width: 100%;
+        padding: 0.625rem; /* Уменьшаем отступы */
+    }
+}
+
+@media (max-width: 30rem) {
+    .filter-box .form__group {
+        min-width: 100%; /* Полная ширина */
+    }
+
+    .filter-box .form__input,
+    .filter-box input[type="date"],
+    .filter-box select {
+        min-width: 100%;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 48rem) {
+    .button {
+        padding: 0.625rem 1.25rem; /* Уменьшаем, но сохраняем удобство */
+        font-size: 0.9rem;
+        min-width: 6rem; /* 96px */
+        min-height: 2.5rem; /* 40px для удобства нажатия */
+    }
+}
+
+@media (max-width: 30rem) {
+    .button {
+        font-size: 0.85rem;
+        min-width: 5rem; /* 80px */
+        min-height: 2.25rem; /* 36px */
+    }
+}
+
+@media (max-width: 48rem) {
+    .modal__content {
+        width: 90%; /* 90% ширины экрана */
+        max-width: 20rem; /* 320px */
+        padding: 0.9375rem; /* 15px */
+    }
+
+    .modal__title {
+        font-size: 1.25rem;
+    }
+
+    .modal__text {
+        font-size: 0.9rem;
+    }
+
+    .modal__buttons .button {
+        padding: 0.625rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 30rem) {
+    .modal__content {
+        max-width: 18rem; /* 288px */
+        padding: 0.625rem; /* 10px */
+    }
+
+    .modal__title {
+        font-size: 1rem;
+    }
+
+    .modal__text {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 48rem) {
+    .footer {
+        padding: 0.9375rem; /* 15px */
+    }
+
+    .footer__text {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 30rem) {
+    .footer {
+        padding: 0.625rem; /* 10px */
+    }
+
+    .footer__text {
+        font-size: 0.85rem;
+    }
+}
+
+.message__content,
+.datasets-table .form__input {
+    overflow-y: auto; /* Вертикальная прокрутка при необходимости */
+    max-height: 10rem; /* Ограничение высоты */
+}
+
+@media (max-width: 48rem) {
+    .message__content,
+    .datasets-table .form__input {
+        max-height: 6rem; /* Уменьшаем на мобильных */
+    }
+}
+
+@media (max-width: 30rem) {
+    .card__description:nth-child(n+2) {
+        display: none; /* Скрываем дополнительные описания в карточках */
+    }
+}
+
+.datasets-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+/*
+.datasets-table th,
+.datasets-table td {
+    padding: 1rem;
+    text-align: left;
+}
+*/
+@media (max-width: 48rem) {
+    .datasets-table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .datasets-table thead,
+    .datasets-table tbody,
+    .datasets-table tr {
+        display: block;
+        width: 100%;
+    }
+
+    .datasets-table th,
+    .datasets-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.625rem;
+        font-size: 0.9rem;
+    }
+
+    .datasets-table td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+}
+
+@media (max-width: 30rem) {
+    .datasets-table th,
+    .datasets-table td {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
+}
