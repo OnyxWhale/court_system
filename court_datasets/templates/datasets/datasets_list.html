@@ -90,7 +90,7 @@
                 </table>
             </div>
         </div>
-        {% if page_obj.has_previous or page_obj.has_next %}
+        {% if is_paginated %}
             <div class="pagination">
                 <span class="pagination__info">
                     {% if page_obj.has_previous %}

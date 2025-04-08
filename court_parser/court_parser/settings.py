@@ -9,7 +9,7 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-default-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-CSRF_TRUSTED_ORIGINS = ["http://localhost:1408"]
+CSRF_TRUSTED_ORIGINS = ["http://localhost:1408", "http://109.120.178.123:1408"]
 
 FORUM_BASE_URL = os.getenv("FORUM_BASE_URL", "https://forum.gta5rp.com/forums/federalnyi-sud.1745/")
 

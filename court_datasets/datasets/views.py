@@ -1,33 +1,34 @@
 from django.views.generic import ListView
 from django.http import JsonResponse
+from django.db.models.functions import Length
 from .models import ForumThread, ClaimNote
 from .utils import get_claim_data
 from django.db import connections
 from django.db.utils import OperationalError
 from .tasks import update_claims_data
-from django.db.models.functions import Length
+from datetime import datetime, timedelta
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 class DatasetsListView(ListView):
     model = ForumThread
     template_name = "datasets/datasets_list.html"
     context_object_name = "claims"
     paginate_by = 100
+    allow_empty = True  # Разрешаем пустые страницы
 
     def get_queryset(self):
         try:
             connections["parser_db"].ensure_connection()
             queryset = ForumThread.objects.using("parser_db").prefetch_related("threadmessage_set").order_by("-created_at")
-            # Фильтр на длину заголовка (> 5 символов) с использованием Length
+            # Фильтр на длину заголовка (> 5 символов)
             queryset = queryset.annotate(title_length=Length("title")).filter(title_length__gt=5)
 
-            # Применение фильтров из GET-параметров
+            # Применение базовых фильтров из GET-параметров
             title_filter = self.request.GET.get("title", "").strip()
             date_from = self.request.GET.get("date_from")
             date_to = self.request.GET.get("date_to")
             prefix_filter = self.request.GET.get("prefix")
-            judge_filter = self.request.GET.get("judge", "").strip()
             note_filter = self.request.GET.get("note")
-            urgent_filter = self.request.GET.get("urgent")
 
             if title_filter:
                 queryset = queryset.filter(title__icontains=title_filter)
@@ -49,19 +50,23 @@ class DatasetsListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Получаем полный набор данных без пагинации
+        all_threads = self.get_queryset()
         claims_data = []
 
-        # Обработка queryset для добавления вычисляемых данных
-        for thread in context["object_list"]:
+        # Преобразуем все объекты в данные с вычисляемыми полями
+        for thread in all_threads:
             claim_data = get_claim_data(thread)
             note = ClaimNote.objects.filter(thread_id=thread.id).first()
             claim_data["note"] = note.note if note else ""
             claim_data["thread_id"] = thread.id
             claims_data.append(claim_data)
 
-        # Дополнительные фильтры, которые нельзя применить к queryset напрямую
+        # Применяем дополнительные фильтры
         judge_filter = self.request.GET.get("judge", "").strip()
         urgent_filter = self.request.GET.get("urgent")
+        filtered_claims = claims_data
+
         if judge_filter or urgent_filter == "true":
             filtered_claims = []
             for claim in claims_data:
@@ -76,18 +81,24 @@ class DatasetsListView(ListView):
                     ):
                         continue
                 filtered_claims.append(claim)
-            context["claims"] = filtered_claims
-        else:
-            context["claims"] = claims_data
 
-        # Обновление кэша асинхронно
-        update_claims_data.delay()
+        # Ручная пагинация отфильтрованного списка
+        paginator = Paginator(filtered_claims, self.paginate_by)
+        page_number = self.request.GET.get("page")
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
 
         # Уникальные судьи
         judges = sorted(set(claim["leading_judges"] for claim in claims_data if claim["leading_judges"]))
-        context["judges"] = judges
 
-        # Фильтры для шаблона
+        # Передача данных в контекст
+        context["claims"] = page_obj.object_list
+        context["page_obj"] = page_obj
+        context["paginator"] = paginator
         context["filters"] = {
             "title": self.request.GET.get("title", ""),
             "date_from": self.request.GET.get("date_from"),
@@ -97,6 +108,12 @@ class DatasetsListView(ListView):
             "note": self.request.GET.get("note"),
             "urgent": urgent_filter,
         }
+        context["judges"] = judges
+        context["is_paginated"] = paginator.num_pages > 1
+
+        # Обновление кэша асинхронно
+        update_claims_data.delay()
+
         return context
 
     def parse_time_string(self, time_str):
