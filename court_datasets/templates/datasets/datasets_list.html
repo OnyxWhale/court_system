@@ -90,15 +90,15 @@
                 </table>
             </div>
         </div>
-        {% if show_pagination %}
+        {% if page_obj.has_previous or page_obj.has_next %}
             <div class="pagination">
                 <span class="pagination__info">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}" class="button button--secondary">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="button button--secondary">«</a>
                     {% endif %}
                     Страница {{ page_obj.number }} из {{ paginator.num_pages }}
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="button button--secondary">»</a>
+                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="button button--secondary">»</a>
                     {% endif %}
                 </span>
             </div>
