@@ -1,8 +1,9 @@
 __pycache__/
 venv/
-logs/
-all_code.txt
-combined_files.txt
-html_css.ps1
-req.txt
 script_all.ps1
+
+# Log folders
+court_datasets/logs/
+court_judges/logs/
+court_parser/logs/
+court_proxy/logs/
