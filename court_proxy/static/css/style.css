@@ -102,7 +102,7 @@ body {
 
 .header {
     background: var(--primary-bg);
-    padding: 1.25rem 0;
+    padding: 1rem 0;
     box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
@@ -407,6 +407,7 @@ input[type="datetime-local"]:focus {
     border-radius: 0.625rem;
     box-shadow: var(--shadow);
     overflow: hidden;
+    table-layout: fixed;
 }
 
 .datasets-table thead {
@@ -441,7 +442,11 @@ input[type="datetime-local"]:focus {
     border-bottom: 1px solid var(--secondary-bg);
     border-right: 1px solid var(--secondary-bg);
     vertical-align: middle;
+    overflow: hidden; /* Скрытие содержимого, выходящего за границы */
+    text-overflow: ellipsis; /* Добавление многоточия для длинного текста */
+    white-space: nowrap; /* Предотвращение переноса текста по умолчанию */
 }
+
 
 .datasets-table th:last-child,
 .datasets-table td:last-child {

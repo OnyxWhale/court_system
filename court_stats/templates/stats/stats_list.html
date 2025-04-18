@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load stats_filters %}
+
+{% block title %}{{ court_name }} - Статистика{% endblock %}
+
+{% block content %}
+<section class="section">
+    <nav class="court-nav">
+        <ul>
+            <li><a href="?source=link1" class="court-nav__link {% if source == 'link1' %}active{% endif %}">В</a></li>
+            <li><a href="?source=link2" class="court-nav__link {% if source == 'link2' %}active{% endif %}">Ф</a></li>
+            <li><a href="?source=link3" class="court-nav__link {% if source == 'link3' %}active{% endif %}">Р</a></li>
+        </ul>
+    </nav>
+    <h1>{{ court_name }} - Статистика</h1>
+    <form method="get" class="filter-form" id="filter-form">
+        <div class="filter-box">
+            <div class="filter-box__filters">
+                <div class="form__group">
+                    <label for="date_from" class="form__label">Дата от:</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}" class="form__input" onchange="this.form.submit()">
+                </div>
+                <div class="form__group">
+                    <label for="date_to" class="form__label">Дата до:</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}" class="form__input" onchange="this.form.submit()">
+                </div>
+                <div class="form__group">
+                    <label for="prefix" class="form__label">Префикс:</label>
+                    <select id="prefix" name="prefix" class="form__input" onchange="this.form.submit()">
+                        <option value="" {% if not filters.prefix %}selected{% endif %}>Все</option>
+                        <option value="Рассмотрено" {% if filters.prefix == "Рассмотрено" %}selected{% endif %}>Рассмотрено</option>
+                        <option value="Отказано" {% if filters.prefix == "Отказано" %}selected{% endif %}>Отказано</option>
+                        <option value="Важно" {% if filters.prefix == "Важно" %}selected{% endif %}>Важно</option>
+                        <option value="Нет" {% if filters.prefix == "Нет" %}selected{% endif %}>Нет</option>
+                        <option value="На рассмотрении" {% if filters.prefix == "На рассмотрении" %}selected{% endif %}>На рассмотрении</option>
+                    </select>
+                </div>
+                <div class="form__group">
+                    <label for="judge" class="form__label">Судья:</label>
+                    <select id="judge" name="judge" class="form__input" onchange="this.form.submit()">
+                        <option value="" {% if not filters.judge %}selected{% endif %}>Все</option>
+                        {% for judge in judges %}
+                            <option value="{{ judge }}" {% if filters.judge == judge %}selected{% endif %}>{{ judge }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="filter-box__buttons">
+                <a href="{% url 'stats:stats_list' %}" class="button button--secondary">Сбросить</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="message-list">
+        <div class="message-block">
+            <h2>Статистика по искам</h2>
+            <table class="datasets-table">
+                <thead>
+                    <tr>
+                        <th>Метрика</th>
+                        <th>Значение</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Общее количество исков</td>
+                        <td>{{ stats.total_threads }}</td>
+                    </tr>
+                    {% for prefix, count in stats.prefix_counts.items %}
+                        <tr>
+                            <td>Исков с префиксом "{{ prefix }}"</td>
+                            <td>{{ count }} ({{ count|floatformat:2 }}%)</td>
+                        </tr>
+                    {% endfor %}
+                    <tr>
+                        <td>Среднее время первого ответа</td>
+                        <td>{{ stats.avg_first_response|default_if_none:"Нет данных"|format_timedelta }}</td>
+                    </tr>
+                    <tr>
+                        <td>Медианное время первого ответа</td>
+                        <td>{{ stats.median_first_response|default_if_none:"Нет данных"|format_timedelta }}</td>
+                    </tr>
+                    <tr>
+                        <td>Среднее время судопроизводства</td>
+                        <td>{{ stats.avg_court_time|default_if_none:"Нет данных"|format_timedelta }}</td>
+                    </tr>
+                    <tr>
+                        <td>Медианное время судопроизводства</td>
+                        <td>{{ stats.median_court_time|default_if_none:"Нет данных"|format_timedelta }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="message-block">
+            <h2>Статистика по судьям</h2>
+            <table class="datasets-table">
+                <thead>
+                    <tr>
+                        <th>Судья</th>
+                        <th>Количество исков</th>
+                        <th>Среднее время ответа</th>
+                        <th>Среднее время судопроизводства</th>
+                        <th>Префиксы</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for name, data in stats.judge_stats.items %}
+                        <tr>
+                            <td>{{ name }}</td>
+                            <td>{{ data.threads }}</td>
+                            <td>{{ data.avg_first_response|default_if_none:"Нет данных"|format_timedelta }}</td>
+                            <td>{{ data.avg_court_time|default_if_none:"Нет данных"|format_timedelta }}</td>
+                            <td>
+                                {% for prefix, count in data.prefix_counts.items %}
+                                    {% if count > 0 %}
+                                        {{ prefix }}: {{ count }}<br>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">Нет данных по судьям</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="message-block">
+            <h2>Графики</h2>
+            <canvas id="prefixChart"></canvas>
+            <canvas id="threadsByDateChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const prefixChart = new Chart(document.getElementById('prefixChart'), {
+        type: 'pie',
+        data: {
+            labels: {{ chart_data.prefix_labels|safe }},
+            datasets: [{
+                data: {{ chart_data.prefix_values|safe }},
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+            }]
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Распределение исков по префиксам'
+                }
+            }
+        }
+    });
+
+    const threadsByDateChart = new Chart(document.getElementById('threadsByDateChart'), {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.date_labels|safe }},
+            datasets: [{
+                label: 'Количество исков',
+                data: {{ chart_data.date_values|safe }},
+                borderColor: '#36A2EB',
+                fill: false
+            }]
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Иски по датам'
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Дата' } },
+                y: { title: { display: true, text: 'Количество исков' } }
+            }
+        }
+    });
+</script>
+{% endblock %}

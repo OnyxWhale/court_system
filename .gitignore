@@ -7,3 +7,4 @@ court_datasets/logs/
 court_judges/logs/
 court_parser/logs/
 court_proxy/logs/
+court_stats/logs/
