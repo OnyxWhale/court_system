@@ -5,7 +5,12 @@ from django.views.generic import TemplateView, ListView, DetailView
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
-from .models import ForumThread, ThreadMessage, ParseProgress
+from .models import (
+    ParseProgress,
+    ForumThreadLink1, ThreadMessageLink1,
+    ForumThreadLink2, ThreadMessageLink2,
+    ForumThreadLink3, ThreadMessageLink3
+)
 from .tasks import parse_forum
 from django_celery_beat.models import PeriodicTask, IntervalSchedule
 
@@ -22,14 +27,23 @@ def get_auto_parse_info(auto_task: Optional[PeriodicTask]) -> Tuple[Optional[Dic
         Tuple[Optional[Dict], Optional[datetime]]: Информация о парсинге и время следующего запуска.
     """
     if not auto_task or not auto_task.args:
+        logger.debug(f"No auto_task or empty args: {auto_task}")
         return None, None
     try:
         args = json.loads(auto_task.args)
+        logger.debug(f"Parsed args: {args}")
+        if not isinstance(args, list) or len(args) < 2:
+            logger.error(f"Invalid args format, expected [pages, link_type]: {args}")
+            return None, None
+        pages, link_type = args[0], args[1]
+        if not isinstance(pages, int) or not isinstance(link_type, str):
+            logger.error(f"Invalid args types, expected [int, str]: {args}")
+            return None, None
         last_run = auto_task.last_run_at or timezone.now()
         next_run = last_run + timedelta(minutes=auto_task.interval.every)
-        return {"pages": args[0], "interval": auto_task.interval.every}, next_run
-    except (json.JSONDecodeError, IndexError) as e:
-        logger.error(f"Ошибка при парсинге args: {e}")
+        return {"pages": pages, "interval": auto_task.interval.every}, next_run
+    except (json.JSONDecodeError, IndexError, TypeError) as e:
+        logger.error(f"Error parsing args: {e}, args: {auto_task.args}")
         return None, None
 
 class ParserHomeView(TemplateView):
@@ -44,92 +58,156 @@ class ParserHomeView(TemplateView):
                 if pages < 1 or interval < 1:
                     raise ValueError("Количество страниц и интервал должны быть положительными")
             except ValueError as e:
+                logger.error(f"Invalid input: {e}")
                 return JsonResponse({"error": str(e)}, status=400)
 
             schedule, _ = IntervalSchedule.objects.get_or_create(
                 every=interval, period=IntervalSchedule.MINUTES
             )
-            PeriodicTask.objects.update_or_create(
-                name="Auto Parse Forum",
-                defaults={
-                    "interval": schedule,
-                    "task": "parser.tasks.parse_forum",
-                    "args": json.dumps([pages]),
-                }
-            )
-            progress, _ = ParseProgress.objects.get_or_create(
-                id=1, defaults={"status": "running"}
-            )
-            progress.status = "running"
-            progress.save()
+            for link_type in ['link1', 'link2', 'link3']:
+                PeriodicTask.objects.update_or_create(
+                    name=f"Auto Parse Forum {link_type}",
+                    defaults={
+                        "interval": schedule,
+                        "task": "parser.tasks.parse_forum_link",
+                        "args": json.dumps([pages, link_type]),
+                    }
+                )
+                progress, _ = ParseProgress.objects.get_or_create(
+                    link_type=link_type, defaults={"status": "running"}
+                )
+                progress.status = "running"
+                progress.save()
             logger.info(f"Автоматический парсинг запущен: {pages} страниц каждые {interval} минут")
             return JsonResponse({"message": "Статус: Работает"})
         elif action == "stop_auto_parse":
-            PeriodicTask.objects.filter(name="Auto Parse Forum").delete()
-            progress = ParseProgress.objects.first()
-            if progress and progress.task_id:
-                try:
-                    from celery import current_app
-                    control = current_app.control
-                    control.revoke(progress.task_id, terminate=True)
-                    logger.info(f"Задача с task_id {progress.task_id} завершена")
-                except Exception as e:
-                    logger.error(f"Ошибка при завершении задачи: {e}")
-            if progress:
-                progress.status = "stopped"
-                progress.task_id = None
-                progress.save()
+            for link_type in ['link1', 'link2', 'link3']:
+                PeriodicTask.objects.filter(name=f"Auto Parse Forum {link_type}").delete()
+                progress = ParseProgress.objects.filter(link_type=link_type).first()
+                if progress and progress.task_id:
+                    try:
+                        from celery import current_app
+                        control = current_app.control
+                        control.revoke(progress.task_id, terminate=True)
+                        logger.info(f"Задача с task_id {progress.task_id} завершена")
+                    except Exception as e:
+                        logger.error(f"Ошибка при завершении задачи: {e}")
+                if progress:
+                    progress.status = "stopped"
+                    progress.task_id = None
+                    progress.save()
             logger.info("Автоматический парсинг остановлен")
             return JsonResponse({"message": "Статус: Не активен"})
         return JsonResponse({"error": "Неверное действие"}, status=400)
 
     def get_context_data(self, **kwargs) -> Dict:
         context = super().get_context_data(**kwargs)
-        progress = ParseProgress.objects.first()
-        auto_task = PeriodicTask.objects.filter(name="Auto Parse Forum").first()
-        context["progress"] = progress
-        context["auto_parse"], context["next_run"] = get_auto_parse_info(auto_task)
+        progresses = ParseProgress.objects.all()
+        auto_tasks = {task.name: task for task in PeriodicTask.objects.filter(name__startswith="Auto Parse Forum")}
+        context["progresses"] = progresses
+        context["auto_parse"] = None
+        context["next_run"] = None
+        if auto_tasks:
+            auto_task = list(auto_tasks.values())[0]
+            context["auto_parse"], context["next_run"] = get_auto_parse_info(auto_task)
         return context
 
-class ThreadListView(ListView):
-    model = ForumThread
-    template_name = "parser/threads.html"
+class ThreadListLink1View(ListView):
+    model = ForumThreadLink1
+    template_name = "parser/link1_threads.html"
     context_object_name = "threads"
     paginate_by = 84
 
     def get_queryset(self):
-        return ForumThread.objects.prefetch_related("threadmessage_set").order_by("-created_at")
+        return ForumThreadLink1.objects.prefetch_related("threadmessagelink1_set").order_by("-created_at")
 
-class ThreadDetailView(DetailView):
-    model = ForumThread
-    template_name = "parser/thread_detail.html"
+class ThreadDetailLink1View(DetailView):
+    model = ForumThreadLink1
+    template_name = "parser/link1_thread_detail.html"
     context_object_name = "thread"
 
     def get_context_data(self, **kwargs) -> Dict:
         context = super().get_context_data(**kwargs)
-        context["messages"] = ThreadMessage.objects.filter(thread=self.object)
+        context["messages"] = ThreadMessageLink1.objects.filter(thread=self.object)
+        return context
+
+class ThreadListLink2View(ListView):
+    model = ForumThreadLink2
+    template_name = "parser/link2_threads.html"
+    context_object_name = "threads"
+    paginate_by = 84
+
+    def get_queryset(self):
+        return ForumThreadLink2.objects.prefetch_related("threadmessagelink2_set").order_by("-created_at")
+
+class ThreadDetailLink2View(DetailView):
+    model = ForumThreadLink2
+    template_name = "parser/link2_thread_detail.html"
+    context_object_name = "thread"
+
+    def get_context_data(self, **kwargs) -> Dict:
+        context = super().get_context_data(**kwargs)
+        context["messages"] = ThreadMessageLink2.objects.filter(thread=self.object)
+        return context
+
+class ThreadListLink3View(ListView):
+    model = ForumThreadLink3
+    template_name = "parser/link3_threads.html"
+    context_object_name = "threads"
+    paginate_by = 84
+
+    def get_queryset(self):
+        return ForumThreadLink3.objects.prefetch_related("threadmessagelink3_set").order_by("-created_at")
+
+class ThreadDetailLink3View(DetailView):
+    model = ForumThreadLink3
+    template_name = "parser/link3_thread_detail.html"
+    context_object_name = "thread"
+
+    def get_context_data(self, **kwargs) -> Dict:
+        context = super().get_context_data(**kwargs)
+        context["messages"] = ThreadMessageLink3.objects.filter(thread=self.object)
         return context
 
 def parser_status(request) -> JsonResponse:
-    progress = ParseProgress.objects.first()
-    auto_task = PeriodicTask.objects.filter(name="Auto Parse Forum").first()
-    auto_parse, next_run = get_auto_parse_info(auto_task)
-    remaining_time = None
-    if next_run:
-        now = timezone.now()
-        delta = next_run - now
-        remaining_time = int(delta.total_seconds()) if delta.total_seconds() > 0 else 0
-        # Если парсинг завершён, проверяем статус прогресса
-        if progress and progress.status == "completed" and auto_task:
-            remaining_time = int((auto_task.last_run_at + timedelta(minutes=auto_task.interval.every) - now).total_seconds())
-            remaining_time = max(remaining_time, 0)
-    data = {
-        "progress": {
-            "status": progress.status if progress else "Не активен",
-            "progress": progress.progress if progress else 0
-        },
-        "auto_parse": auto_parse,
-        "next_run": next_run.strftime("%Y-%m-%d %H:%M:%S") if next_run else "Автоматический парсинг не активен",
-        "remaining_time": remaining_time
-    }
-    return JsonResponse(data)
+    """
+    Возвращает статус парсинга для всех типов ссылок и информацию об автоматическом парсинге.
+
+    Args:
+        request: HTTP-запрос.
+
+    Returns:
+        JsonResponse: JSON с данными о прогрессе, настройках и времени до следующего парсинга.
+    """
+    progresses = ParseProgress.objects.all()
+    auto_tasks = PeriodicTask.objects.filter(name__startswith="Auto Parse Forum")
+    auto_parse_info = None
+    auto_parse_settings = None
+    remaining_time = 0
+
+    if auto_tasks:
+        auto_task = auto_tasks.first()
+        auto_parse_info, next_run = get_auto_parse_info(auto_task)
+        if auto_parse_info:
+            auto_parse_settings = {
+                "pages": auto_parse_info["pages"],
+                "interval": auto_parse_info["interval"]
+            }
+        if next_run:
+            remaining_time = int((next_run - timezone.now()).total_seconds())
+
+    progress_data = [
+        {
+            "link_type": progress.get_link_type_display(),
+            "status": progress.status,
+            "progress": progress.progress,
+        }
+        for progress in progresses
+    ]
+
+    return JsonResponse({
+        "progresses": progress_data,
+        "auto_parse": bool(auto_parse_info),
+        "auto_parse_settings": auto_parse_settings,
+        "remaining_time": remaining_time,
+    })

@@ -8,7 +8,7 @@
         <div class="parser-container">
             <article class="message-block">
                 <h2 class="card__title">Автоматический парсер</h2>
-                <p class="card__description">Запускается автоматически через заданный интервал.</p>
+                <p class="card__description">Запускается автоматически через заданный интервал для трёх форумов.</p>
                 <form id="auto-parse-form" method="post" class="parser-form">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="auto_parse">
@@ -26,20 +26,27 @@
                     </div>
                 </form>
                 <div id="auto-status" class="status-box">
-                    {% if auto_parse %}
+                    {% if auto_parse and auto_parse.pages and auto_parse.interval %}
                         <p class="status__text">Статус: Работает</p>
+                        <p class="status__text">Настройки: {{ auto_parse.pages }} стр. каждые {{ auto_parse.interval }} мин</p>
                         {% if next_run %}
                             <p class="status__text" id="remaining-time">До следующего парсинга: вычисляется...</p>
                         {% endif %}
                     {% else %}
                         <p class="status__text">Статус: Не активен</p>
+                        <p class="status__text">Настройки: Отсутствуют</p>
                         <p class="status__text">До следующего парсинга: Парсинг не активен</p>
                     {% endif %}
+                    {% for progress in progresses %}
+                        <p class="status__text">{{ progress.get_link_type_display }}: {{ progress.status }} ({{ progress.progress|floatformat:2 }}%)</p>
+                    {% endfor %}
                 </div>
             </article>
         </div>
         <div class="threads-link">
-            <a href="{% url 'parser:threads' %}" class="button button--secondary">Перейти к тредам</a>
+            <a href="{% url 'parser:link1_threads' %}" class="button button--secondary">Треды Верховного суда</a>
+            <a href="{% url 'parser:link2_threads' %}" class="button button--secondary">Треды Федерального суда</a>
+            <a href="{% url 'parser:link3_threads' %}" class="button button--secondary">Треды Реабилитации</a>
         </div>
     </section>
 
@@ -48,6 +55,8 @@
 
         document.getElementById("auto-parse-form").addEventListener("submit", function(e) {
             e.preventDefault();
+            const pages = document.getElementById("auto-pages").value;
+            const interval = document.getElementById("interval").value;
             fetch("/parser/", {
                 method: "POST",
                 body: new FormData(this),
@@ -57,6 +66,7 @@
             .then(data => {
                 document.getElementById("auto-status").innerHTML = `
                     <p class="status__text">Статус: Работает</p>
+                    <p class="status__text">Настройки: ${pages} стр. каждые ${interval} мин</p>
                     <p class="status__text" id="remaining-time">До следующего парсинга: вычисляется...</p>`;
                 document.getElementById("stop-auto-parse").style.display = "block";
             })
@@ -76,6 +86,7 @@
             .then(data => {
                 document.getElementById("auto-status").innerHTML = `
                     <p class="status__text">${data.message}</p>
+                    <p class="status__text">Настройки: Отсутствуют</p>
                     <p class="status__text">До следующего парсинга: Парсинг не активен</p>`;
                 this.style.display = "none";
             })
@@ -94,22 +105,33 @@
             .then(response => response.json())
             .then(data => {
                 const statusBox = document.getElementById("auto-status");
+                let progressesHtml = "";
+                data.progresses.forEach(progress => {
+                    progressesHtml += `<p class="status__text">${progress.link_type}: ${progress.status} (${progress.progress.toFixed(2)}%)</p>`;
+                });
                 if (data.auto_parse) {
                     const remainingTime = Math.max(data.remaining_time, 0);
                     let status = "Работает";
-                    if (data.progress.status === "running") {
+                    if (data.progresses.some(p => p.status === "running")) {
                         status = "Парсинг выполняется";
-                    } else if (data.progress.status === "completed") {
+                    } else if (data.progresses.every(p => p.status === "completed")) {
                         status = "Ожидание следующего парсинга";
                     }
+                    const settingsText = data.auto_parse_settings && data.auto_parse_settings.pages && data.auto_parse_settings.interval
+                        ? `${data.auto_parse_settings.pages} стр. каждые ${data.auto_parse_settings.interval} мин`
+                        : "Неизвестно";
                     statusBox.innerHTML = `
                         <p class="status__text">Статус: ${status}</p>
-                        <p class="status__text" id="remaining-time">До следующего парсинга: ${formatTime(remainingTime)}</p>`;
+                        <p class="status__text">Настройки: ${settingsText}</p>
+                        <p class="status__text" id="remaining-time">До следующего парсинга: ${formatTime(remainingTime)}</p>
+                        ${progressesHtml}`;
                     document.getElementById("stop-auto-parse").style.display = "block";
                 } else {
                     statusBox.innerHTML = `
                         <p class="status__text">Статус: Не активен</p>
-                        <p class="status__text">До следующего парсинга: Парсинг не активен</p>`;
+                        <p class="status__text">Настройки: Отсутствуют</p>
+                        <p class="status__text">До следующего парсинга: Парсинг не активен</p>
+                        ${progressesHtml}`;
                     document.getElementById("stop-auto-parse").style.display = "none";
                 }
             })

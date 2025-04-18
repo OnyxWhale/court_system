@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Треды - Court Parser{% endblock %}
+{% block title %}Треды Link 2 - Court Parser{% endblock %}
 
 {% block content %}
     <section class="section">
-        <h1 class="section__title">Треды</h1>
+        <h1 class="section__title">Треды Link 2</h1>
         <div class="thread-grid">
             {% for thread in threads %}
-                <a href="{% url 'parser:thread_detail' thread.pk %}" class="card">
+                <a href="{% url 'parser:link2_thread_detail' thread.pk %}" class="card">
                     <h2 class="card__title">{{ thread.title }}</h2>
                     <p class="card__description">Префикс: {{ thread.prefix|default:"Нет" }}</p>
                     <p class="card__description">Создан: {{ thread.created_at|date:"d.m.Y H:i" }}</p>

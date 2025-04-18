@@ -8,14 +8,14 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 class ForumParser:
-    def __init__(self, base_url: str = settings.FORUM_BASE_URL):
+    def __init__(self, link_type: str):
         """
         Инициализация парсера форума.
 
         Args:
-            base_url (str): Базовый URL форума (по умолчанию из настроек).
+            link_type (str): Тип ссылки ('link1', 'link2', 'link3').
         """
-        self.base_url = base_url.rstrip('/') + '/'
+        self.base_url = settings.FORUM_URLS[link_type].rstrip('/') + '/'
         self.root_url = "https://forum.gta5rp.com/"
         self.headers = {"User-Agent": "Mozilla/5.0"}
 
