@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Наборы данных - Court Datasets{% endblock %}
+{% block title %}{{ court_name }} - Court Datasets{% endblock %}
 
 {% block content %}
     <section class="section">
-        <form method="get" class="filter-form">
+        <nav class="court-nav">
+            <ul>
+                <li><a href="{% url 'datasets:supreme_court_list' %}" class="court-nav__link {% if source == 'link1' %}active{% endif %}">В</a></li>
+                <li><a href="{% url 'datasets:federal_court_list' %}" class="court-nav__link {% if source == 'link2' %}active{% endif %}">Ф</a></li>
+                <li><a href="{% url 'datasets:rehabilitation_list' %}" class="court-nav__link {% if source == 'link3' %}active{% endif %}">Р</a></li>
+            </ul>
+        </nav>
+        <!-- <h1>{{ court_name }}</h1> -->
+        <form method="get" class="filter-form" id="filter-form">
             <div class="filter-box">
                 <div class="filter-box__filters">
                     <div class="form__group">
@@ -50,44 +58,44 @@
                 </div>
                 <div class="filter-box__buttons">
                     <button type="submit" name="urgent" value="true" class="button button--urgent">Срочное</button>
-                    <a href="{% url 'datasets:datasets_list' %}" class="button button--secondary">Сбросить</a>
+                    <a href="{% url 'datasets:'|add:request.resolver_match.url_name %}" class="button button--secondary">Сбросить</a>
                 </div>
             </div>
         </form>
         <div class="message-list">
             <div class="message-block">
-                <table class="datasets-table">
-                    <thead>
-                        <tr>
-                            <th>Исковое заявление</th>
-                            <th>Дата подачи</th>
-                            <th>Первый ответ суда</th>
-                            <th>Судопроизводство</th>
-                            <th>Префикс</th>
-                            <th>Ведущий судья</th>
-                            <th>Примечания</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for claim in claims %}
+                {% if not claims %}
+                    <p class="empty-text">Данные для {{ court_name }} недоступны или отсутствуют.</p>
+                {% else %}
+                    <table class="datasets-table">
+                        <thead>
                             <tr>
-                                <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
-                                <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
-                                <td>{{ claim.first_response_time|default:"—" }}</td>
-                                <td>{{ claim.court_time|default:"—" }}</td>
-                                <td>{{ claim.prefix }}</td>
-                                <td>{{ claim.leading_judges|default:"—" }}</td>
-                                <td>
-                                    <textarea class="form__input" data-thread-id="{{ claim.thread_id }}" onblur="saveNote(this)">{{ claim.note }}</textarea>
-                                </td>
+                                <th>Исковое заявление</th>
+                                <th>Дата подачи</th>
+                                <th>Первый ответ суда</th>
+                                <th>Судопроизводство</th>
+                                <th>Префикс</th>
+                                <th>Ведущий судья</th>
+                                <th>Примечания</th>
                             </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="7" class="empty-text">Данные отсутствуют</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {% for claim in claims %}
+                                <tr>
+                                    <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
+                                    <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ claim.first_response_time|default:"—" }}</td>
+                                    <td>{{ claim.court_time|default:"—" }}</td>
+                                    <td>{{ claim.prefix }}</td>
+                                    <td>{{ claim.leading_judges|default:"—" }}</td>
+                                    <td>
+                                        <textarea class="form__input" data-thread-id="{{ claim.thread_id }}" data-source="{{ source }}" onblur="saveNote(this)">{{ claim.note }}</textarea>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
             </div>
         </div>
         {% if is_paginated %}
@@ -109,18 +117,19 @@
         function saveNote(element) {
             const threadId = element.getAttribute("data-thread-id");
             const noteText = element.value;
+            const source = element.getAttribute("data-source");
             fetch("{% url 'datasets:update_note' %}", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
                     "X-CSRFToken": "{{ csrf_token }}",
                 },
-                body: "thread_id=" + encodeURIComponent(threadId) + "&note=" + encodeURIComponent(noteText)
+                body: `thread_id=${encodeURIComponent(threadId)}¬e=${encodeURIComponent(noteText)}&source=${encodeURIComponent(source)}`
             })
             .then(response => response.json())
             .then(data => {
                 if (!data.success) {
-                    console.error("Ошибка:", data.error);
+                    console.error("Ошибка сохранения примечания:", data.error);
                 } else {
                     console.log("Примечание сохранено:", noteText);
                 }
@@ -128,85 +137,72 @@
             .catch(error => console.error("Ошибка запроса:", error));
         }
 
-        // Функция для преобразования строки времени в минуты
         function parseTimeToMinutes(timeStr) {
             if (!timeStr || timeStr === "Нет данных" || timeStr === "—") return 0;
             const parts = timeStr.split(" ");
             const days = parseInt(parts[0]) || 0;
             const hours = parseInt(parts[2]) || 0;
             const minutes = parseInt(parts[4]) || 0;
-            return days * 1440 + hours * 60 + minutes; // 1440 минут в сутках
+            return days * 1440 + hours * 60 + minutes;
         }
 
-        // Функция для определения уровня индикации (0-6)
         function getIndicatorLevel(minutes, maxMinutes) {
             if (minutes === 0) return 0;
-            const ratio = Math.min(minutes / maxMinutes, 1); // Нормализуем до 0-1
-            return Math.min(Math.floor(ratio * 6) + 1, 6); // Преобразуем в 1-6
+            const ratio = Math.min(minutes / maxMinutes, 1);
+            return Math.min(Math.floor(ratio * 6) + 1, 6);
         }
 
-        // Применение индикации к ячейкам
         document.addEventListener("DOMContentLoaded", () => {
             const rows = document.querySelectorAll(".datasets-table tbody tr");
 
             rows.forEach(row => {
-                // Получаем ячейки
-                const firstResponseCell = row.cells[2]; // "Первый ответ суда"
-                const courtTimeCell = row.cells[3];    // "Судопроизводство"
-                const prefixCell = row.cells[4];       // "Префикс"
-                const judgeCell = row.cells[5];        // "Ведущий судья"
+                const firstResponseCell = row.cells[2];
+                const courtTimeCell = row.cells[3];
+                const prefixCell = row.cells[4];
+                const judgeCell = row.cells[5];
 
-                // Значения
                 const firstResponseText = firstResponseCell.textContent.trim();
                 const courtTimeText = courtTimeCell.textContent.trim();
                 const prefix = prefixCell.textContent.trim();
                 const judge = judgeCell.textContent.trim();
 
-                // Добавляем класс для стилизации ячеек с временем
                 firstResponseCell.classList.add("time-cell");
                 courtTimeCell.classList.add("time-cell");
 
-                // Парсим время в минуты
                 const firstResponseMinutes = parseTimeToMinutes(firstResponseText);
                 const courtTimeMinutes = parseTimeToMinutes(courtTimeText);
 
-                // Логика для "Первый ответ суда"
                 if (firstResponseText !== "Нет данных" && firstResponseText !== "—") {
-                    const maxFirstResponseMinutes = 3 * 1440; // 3 дня в минутах
+                    const maxFirstResponseMinutes = 3 * 1440;
                     const level = getIndicatorLevel(firstResponseMinutes, maxFirstResponseMinutes);
                     const span = document.createElement("span");
                     span.textContent = firstResponseText;
 
                     if (judge === "Не определён") {
-                        // Закрашиваем ячейку, если судья не определён
                         firstResponseCell.classList.add("colored");
                         firstResponseCell.innerHTML = "";
                         firstResponseCell.appendChild(span);
                         span.classList.add(`time-indicator-${level}`);
                     } else {
-                        // Только текст окрашивается
                         firstResponseCell.innerHTML = "";
                         firstResponseCell.appendChild(span);
                         span.classList.add(`text-indicator-${level}`);
                     }
                 }
 
-                // Логика для "Судопроизводство"
                 if (courtTimeText !== "Нет данных" && courtTimeText !== "—") {
-                    const maxCourtTimeMinutes = 7 * 1440; // 7 дней в минутах
+                    const maxCourtTimeMinutes = 7 * 1440;
                     const level = getIndicatorLevel(courtTimeMinutes, maxCourtTimeMinutes);
                     const span = document.createElement("span");
                     span.textContent = courtTimeText;
 
                     const finalPrefixes = ["Рассмотрено", "Отказано", "Важно"];
                     if (!finalPrefixes.includes(prefix)) {
-                        // Закрашиваем ячейку, если префикс не финальный
                         courtTimeCell.classList.add("colored");
                         courtTimeCell.innerHTML = "";
                         courtTimeCell.appendChild(span);
                         span.classList.add(`time-indicator-${level}`);
                     } else {
-                        // Только текст окрашивается
                         courtTimeCell.innerHTML = "";
                         courtTimeCell.appendChild(span);
                         span.classList.add(`text-indicator-${level}`);

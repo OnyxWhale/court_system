@@ -1,5 +1,5 @@
 # Укажите путь к вашему проекту и папке, которую нужно исключить
-$projectPath = "D:\Development\court_system\court_parser"
+$projectPath = "D:\Development\court_system\court_datasets"
 $excludePath = "D:\Development\court_system\venv"
 $outputFile = "D:\Development\court_system\all_code2.txt"
 

@@ -1,6 +1,6 @@
 from django.utils import timezone
 from datetime import timedelta
-from .models import ForumThread, ThreadMessage, Judge, WorkHistory
+from .models import ForumThreadLink1, ForumThreadLink2, ForumThreadLink3, ThreadMessageLink1, ThreadMessageLink2, ThreadMessageLink3, Judge, WorkHistory
 
 def format_timedelta(delta):
     if not delta:
@@ -10,8 +10,9 @@ def format_timedelta(delta):
     minutes = remainder // 60
     return f"{days} д. {hours} ч. {minutes} м."
 
-def get_first_court_response(thread):
-    messages = ThreadMessage.objects.filter(thread=thread).order_by("posted_at")
+def get_first_court_response(thread, source):
+    message_model = {"link1": ThreadMessageLink1, "link2": ThreadMessageLink2, "link3": ThreadMessageLink3}[source]
+    messages = message_model.objects.filter(thread=thread).order_by("posted_at")
     judges = Judge.objects.all()
     for message in messages:
         for judge in judges:
@@ -22,8 +23,9 @@ def get_first_court_response(thread):
                 return message.posted_at
     return timezone.now()
 
-def get_last_court_response(thread):
-    messages = ThreadMessage.objects.filter(thread=thread).order_by("-posted_at")
+def get_last_court_response(thread, source):
+    message_model = {"link1": ThreadMessageLink1, "link2": ThreadMessageLink2, "link3": ThreadMessageLink3}[source]
+    messages = message_model.objects.filter(thread=thread).order_by("-posted_at")
     judges = Judge.objects.all()
     for message in messages:
         for judge in judges:
@@ -34,8 +36,9 @@ def get_last_court_response(thread):
                 return message.posted_at
     return None
 
-def get_leading_judges(thread):
-    messages = ThreadMessage.objects.filter(thread=thread).select_related("thread")
+def get_leading_judges(thread, source):
+    message_model = {"link1": ThreadMessageLink1, "link2": ThreadMessageLink2, "link3": ThreadMessageLink3}[source]
+    messages = message_model.objects.filter(thread=thread).select_related("thread")
     judges = Judge.objects.prefetch_related("workhistory_set")
     leading_judges = set()
     for message in messages:
@@ -48,11 +51,11 @@ def get_leading_judges(thread):
     return ", ".join(leading_judges) if leading_judges else "Не определён"
 
 def is_data_outdated(thread):
-    return (timezone.now() - thread.created_at) > timedelta(hours=24)  # Используем created_at вместо updated_at
+    return (timezone.now() - thread.created_at) > timedelta(hours=24)
 
-def get_claim_data(thread):
-    first_response = get_first_court_response(thread)
-    last_response = get_last_court_response(thread)
+def get_claim_data(thread, source):
+    first_response = get_first_court_response(thread, source)
+    last_response = get_last_court_response(thread, source)
     final_prefixes = ["Рассмотрено", "Отказано", "Важно"]
 
     first_response_time = first_response - thread.created_at if first_response else None
@@ -69,5 +72,5 @@ def get_claim_data(thread):
         "court_time": format_timedelta(court_time) if court_time else "Нет данных",
         "prefix": thread.prefix or "Нет",
         "status": "В разработке",
-        "leading_judges": get_leading_judges(thread),
+        "leading_judges": get_leading_judges(thread, source),
     }

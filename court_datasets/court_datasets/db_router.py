@@ -1,6 +1,10 @@
 class DBRouter:
     def db_for_read(self, model, **hints):
-        if model._meta.model_name in ["forumthread", "threadmessage"]:
+        if model._meta.model_name in [
+            "forumthreadlink1", "threadmessagelink1",
+            "forumthreadlink2", "threadmessagelink2",
+            "forumthreadlink3", "threadmessagelink3"
+        ]:
             return "parser_db"
         elif model._meta.model_name in ["judge", "workhistory"]:
             return "judges_db"
@@ -9,7 +13,11 @@ class DBRouter:
         return None
 
     def db_for_write(self, model, **hints):
-        if model._meta.model_name in ["forumthread", "threadmessage"]:
+        if model._meta.model_name in [
+            "forumthreadlink1", "threadmessagelink1",
+            "forumthreadlink2", "threadmessagelink2",
+            "forumthreadlink3", "threadmessagelink3"
+        ]:
             return "parser_db"
         elif model._meta.model_name in ["judge", "workhistory"]:
             return "judges_db"
@@ -24,7 +32,11 @@ class DBRouter:
         if app_label == "datasets":
             if model_name == "claimnote":
                 return db == "default"
-            # Запрещаем миграции для внешних моделей в любой базе
-            if model_name in ["forumthread", "threadmessage", "judge", "workhistory"]:
-                return False
+            if model_name in [
+                "forumthreadlink1", "threadmessagelink1",
+                "forumthreadlink2", "threadmessagelink2",
+                "forumthreadlink3", "threadmessagelink3",
+                "judge", "workhistory"
+            ]:
+                return False  # Неуправляемые модели, миграции отключены
         return False

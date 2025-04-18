@@ -1,29 +1,35 @@
 from django.views.generic import ListView
 from django.http import JsonResponse
 from django.db.models.functions import Length
-from .models import ForumThread, ClaimNote
+from .models import ForumThreadLink1, ForumThreadLink2, ForumThreadLink3, ClaimNote
 from .utils import get_claim_data
 from django.db import connections
-from django.db.utils import OperationalError
+from django.db.utils import OperationalError, ProgrammingError
 from .tasks import update_claims_data
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import logging
 
-class DatasetsListView(ListView):
-    model = ForumThread
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
+class BaseDatasetsListView(ListView):
     template_name = "datasets/datasets_list.html"
     context_object_name = "claims"
     paginate_by = 100
-    allow_empty = True  # Разрешаем пустые страницы
+    allow_empty = True
+    model = None
+    source = None
+    court_name = None
 
     def get_queryset(self):
         try:
             connections["parser_db"].ensure_connection()
-            queryset = ForumThread.objects.using("parser_db").prefetch_related("threadmessage_set").order_by("-created_at")
-            # Фильтр на длину заголовка (> 5 символов)
+            related_name = f"threadmessagelink{self.source[-1]}_set"
+            logger.debug(f"Querying model {self.model.__name__} with related_name {related_name}")
+            queryset = self.model.objects.using("parser_db").prefetch_related(related_name).order_by("-created_at")
             queryset = queryset.annotate(title_length=Length("title")).filter(title_length__gt=5)
 
-            # Применение базовых фильтров из GET-параметров
             title_filter = self.request.GET.get("title", "").strip()
             date_from = self.request.GET.get("date_from")
             date_to = self.request.GET.get("date_to")
@@ -39,30 +45,34 @@ class DatasetsListView(ListView):
             if prefix_filter:
                 queryset = queryset.filter(prefix=prefix_filter)
             if note_filter == "with":
-                queryset = queryset.filter(claimnote__note__isnull=False)
+                queryset = queryset.filter(claimnote__note__isnull=False, claimnote__source=self.source)
             elif note_filter == "without":
-                queryset = queryset.filter(claimnote__note__isnull=True)
+                queryset = queryset.filter(claimnote__note__isnull=True, claimnote__source=self.source)
 
+            logger.debug(f"Queryset count: {queryset.count()}")
             return queryset
-        except OperationalError as e:
-            print(f"Ошибка подключения к parser_db: {e}")
-            return ForumThread.objects.none()
+        except (OperationalError, ProgrammingError) as e:
+            logger.error(f"Ошибка при запросе к parser_db для source={self.source}: {e}")
+            return self.model.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Получаем полный набор данных без пагинации
         all_threads = self.get_queryset()
         claims_data = []
 
-        # Преобразуем все объекты в данные с вычисляемыми полями
+        logger.debug(f"Processing threads for source={self.source}, thread count: {all_threads.count()}")
         for thread in all_threads:
-            claim_data = get_claim_data(thread)
-            note = ClaimNote.objects.filter(thread_id=thread.id).first()
-            claim_data["note"] = note.note if note else ""
-            claim_data["thread_id"] = thread.id
-            claims_data.append(claim_data)
+            try:
+                claim_data = get_claim_data(thread, self.source)
+                note = ClaimNote.objects.filter(thread_id=thread.id, source=self.source).first()
+                claim_data["note"] = note.note if note else ""
+                claim_data["thread_id"] = thread.id
+                claim_data["source"] = self.source
+                claims_data.append(claim_data)
+            except (OperationalError, ProgrammingError) as e:
+                logger.error(f"Ошибка обработки треда {thread.id} для source={self.source}: {e}")
+                continue
 
-        # Применяем дополнительные фильтры
         judge_filter = self.request.GET.get("judge", "").strip()
         urgent_filter = self.request.GET.get("urgent")
         filtered_claims = claims_data
@@ -82,7 +92,6 @@ class DatasetsListView(ListView):
                         continue
                 filtered_claims.append(claim)
 
-        # Ручная пагинация отфильтрованного списка
         paginator = Paginator(filtered_claims, self.paginate_by)
         page_number = self.request.GET.get("page")
         try:
@@ -92,13 +101,13 @@ class DatasetsListView(ListView):
         except EmptyPage:
             page_obj = paginator.page(paginator.num_pages)
 
-        # Уникальные судьи
         judges = sorted(set(claim["leading_judges"] for claim in claims_data if claim["leading_judges"]))
 
-        # Передача данных в контекст
         context["claims"] = page_obj.object_list
         context["page_obj"] = page_obj
         context["paginator"] = paginator
+        context["court_name"] = self.court_name
+        context["source"] = self.source
         context["filters"] = {
             "title": self.request.GET.get("title", ""),
             "date_from": self.request.GET.get("date_from"),
@@ -111,9 +120,9 @@ class DatasetsListView(ListView):
         context["judges"] = judges
         context["is_paginated"] = paginator.num_pages > 1
 
-        # Обновление кэша асинхронно
-        update_claims_data.delay()
+        update_claims_data.delay(self.source)
 
+        logger.debug(f"Context prepared for source={self.source}, claims count: {len(claims_data)}")
         return context
 
     def parse_time_string(self, time_str):
@@ -128,17 +137,35 @@ class DatasetsListView(ListView):
         except (ValueError, IndexError):
             return timedelta(days=0)
 
+class SupremeCourtListView(BaseDatasetsListView):
+    model = ForumThreadLink1
+    source = "link1"
+    court_name = "Верховный суд"
+
+class FederalCourtListView(BaseDatasetsListView):
+    model = ForumThreadLink2
+    source = "link2"
+    court_name = "Федеральный суд"
+
+class RehabilitationListView(BaseDatasetsListView):
+    model = ForumThreadLink3
+    source = "link3"
+    court_name = "Реабилитации"
+
 def update_note(request):
     if request.method == "POST":
         thread_id = request.POST.get("thread_id")
         note_text = request.POST.get("note").strip()
+        source = request.POST.get("source", "link2")
         try:
             if note_text:
-                note, _ = ClaimNote.objects.update_or_create(thread_id=thread_id, defaults={"note": note_text})
+                note, _ = ClaimNote.objects.update_or_create(
+                    thread_id=thread_id, source=source, defaults={"note": note_text}
+                )
             else:
-                ClaimNote.objects.filter(thread_id=thread_id).delete()
+                ClaimNote.objects.filter(thread_id=thread_id, source=source).delete()
             return JsonResponse({"success": True})
         except Exception as e:
-            print(f"Error in update_note: {e}")
+            logger.error(f"Ошибка в update_note для thread_id={thread_id}, source={source}: {e}")
             return JsonResponse({"success": False, "error": str(e)})
     return JsonResponse({"success": False, "error": "Invalid request"})
