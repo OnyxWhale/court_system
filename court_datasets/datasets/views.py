@@ -8,9 +8,13 @@ from django.db.utils import OperationalError, ProgrammingError
 from .tasks import update_claims_data
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.cache import cache
 import logging
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from .models import ClaimNote
+from django.db import transaction
 
-# Настройка логирования
 logger = logging.getLogger(__name__)
 
 class BaseDatasetsListView(ListView):
@@ -58,28 +62,27 @@ class BaseDatasetsListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_threads = self.get_queryset()
-        claims_data = []
+        
+        # Проверка кэша
+        claims_data = cache.get(f"claims_data_{self.source}")
+        if claims_data is None:
+            logger.info(f"Cache miss for source={self.source}, running synchronous update")
+            claims_data = update_claims_data(self.source)  # Синхронный вызов
+        else:
+            logger.debug(f"Cache hit for source={self.source}, {len(claims_data)} items retrieved")
 
-        logger.debug(f"Processing threads for source={self.source}, thread count: {all_threads.count()}")
-        for thread in all_threads:
-            try:
-                claim_data = get_claim_data(thread, self.source)
-                note = ClaimNote.objects.filter(thread_id=thread.id, source=self.source).first()
-                claim_data["note"] = note.note if note else ""
-                claim_data["thread_id"] = thread.id
-                claim_data["source"] = self.source
-                claims_data.append(claim_data)
-            except (OperationalError, ProgrammingError) as e:
-                logger.error(f"Ошибка обработки треда {thread.id} для source={self.source}: {e}")
-                continue
+        # Фильтрация claims_data в соответствии с queryset
+        filtered_claims = []
+        thread_ids = {thread.id for thread in all_threads}
+        for claim in claims_data:
+            if claim["thread_id"] in thread_ids:
+                filtered_claims.append(claim)
 
         judge_filter = self.request.GET.get("judge", "").strip()
         urgent_filter = self.request.GET.get("urgent")
-        filtered_claims = claims_data
-
         if judge_filter or urgent_filter == "true":
-            filtered_claims = []
-            for claim in claims_data:
+            temp_claims = []
+            for claim in filtered_claims:
                 if judge_filter and judge_filter.lower() not in claim["leading_judges"].lower():
                     continue
                 if urgent_filter == "true":
@@ -90,7 +93,8 @@ class BaseDatasetsListView(ListView):
                         (claim["leading_judges"] == "Не определён" and claim["prefix"] == "Нет" and first_response_time > timedelta(days=2, hours=12))
                     ):
                         continue
-                filtered_claims.append(claim)
+                temp_claims.append(claim)
+            filtered_claims = temp_claims
 
         paginator = Paginator(filtered_claims, self.paginate_by)
         page_number = self.request.GET.get("page")
@@ -101,7 +105,7 @@ class BaseDatasetsListView(ListView):
         except EmptyPage:
             page_obj = paginator.page(paginator.num_pages)
 
-        judges = sorted(set(claim["leading_judges"] for claim in claims_data if claim["leading_judges"]))
+        judges = sorted(set(claim["leading_judges"] for claim in filtered_claims if claim["leading_judges"]))
 
         context["claims"] = page_obj.object_list
         context["page_obj"] = page_obj
@@ -120,9 +124,10 @@ class BaseDatasetsListView(ListView):
         context["judges"] = judges
         context["is_paginated"] = paginator.num_pages > 1
 
+        # Запуск асинхронного обновления для следующего цикла
         update_claims_data.delay(self.source)
 
-        logger.debug(f"Context prepared for source={self.source}, claims count: {len(claims_data)}")
+        logger.debug(f"Context prepared for source={self.source}, claims count: {len(filtered_claims)}")
         return context
 
     def parse_time_string(self, time_str):
@@ -152,20 +157,55 @@ class RehabilitationListView(BaseDatasetsListView):
     source = "link3"
     court_name = "Реабилитации"
 
+@csrf_exempt
 def update_note(request):
-    if request.method == "POST":
-        thread_id = request.POST.get("thread_id")
-        note_text = request.POST.get("note").strip()
-        source = request.POST.get("source", "link2")
-        try:
+    if request.method != "POST":
+        logger.error("Invalid request method for update_note")
+        return JsonResponse({"success": False, "error": "Only POST requests are allowed"}, status=405)
+
+    thread_id = request.POST.get("thread_id")
+    note_text = request.POST.get("note", "").strip()
+    source = request.POST.get("source", "link2")
+
+    # Валидация входных данных
+    if not thread_id or not source:
+        logger.error(f"Missing required parameters: thread_id={thread_id}, source={source}")
+        return JsonResponse({"success": False, "error": "thread_id and source are required"}, status=400)
+
+    try:
+        thread_id = int(thread_id)
+        if source not in ["link1", "link2", "link3"]:
+            raise ValueError(f"Invalid source value: {source}")
+    except (ValueError, TypeError) as e:
+        logger.error(f"Invalid thread_id={thread_id} or source={source}: {e}")
+        return JsonResponse({"success": False, "error": "Invalid thread_id or source"}, status=400)
+
+    try:
+        # Проверка существования треда в parser_db
+        model_map = {
+            "link1": ForumThreadLink1,
+            "link2": ForumThreadLink2,
+            "link3": ForumThreadLink3,
+        }
+        model = model_map[source]
+        if not model.objects.using("parser_db").filter(id=thread_id).exists():
+            logger.error(f"Thread with id={thread_id} not found in source={source}")
+            return JsonResponse({"success": False, "error": f"Thread with id={thread_id} not found"}, status=404)
+
+        # Обновление или удаление примечания
+        with transaction.atomic():
             if note_text:
-                note, _ = ClaimNote.objects.update_or_create(
-                    thread_id=thread_id, source=source, defaults={"note": note_text}
+                note, created = ClaimNote.objects.using("default").update_or_create(
+                    thread_id=thread_id,
+                    source=source,
+                    defaults={"note": note_text}
                 )
+                action = "created" if created else "updated"
+                logger.info(f"Note {action} for thread_id={thread_id}, source={source}, note={note_text[:50]}")
             else:
-                ClaimNote.objects.filter(thread_id=thread_id, source=source).delete()
-            return JsonResponse({"success": True})
-        except Exception as e:
-            logger.error(f"Ошибка в update_note для thread_id={thread_id}, source={source}: {e}")
-            return JsonResponse({"success": False, "error": str(e)})
-    return JsonResponse({"success": False, "error": "Invalid request"})
+                deleted = ClaimNote.objects.using("default").filter(thread_id=thread_id, source=source).delete()[0]
+                logger.info(f"Note deleted for thread_id={thread_id}, source={source}, count={deleted}")
+        return JsonResponse({"success": True, "message": "Note updated successfully"})
+    except Exception as e:
+        logger.exception(f"Error updating note for thread_id={thread_id}, source={source}: {str(e)}")
+        return JsonResponse({"success": False, "error": f"Database error: {str(e)}"}, status=500)

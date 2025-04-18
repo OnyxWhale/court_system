@@ -1,6 +1,9 @@
 from django.utils import timezone
 from datetime import timedelta
 from .models import ForumThreadLink1, ForumThreadLink2, ForumThreadLink3, ThreadMessageLink1, ThreadMessageLink2, ThreadMessageLink3, Judge, WorkHistory
+import logging
+
+logger = logging.getLogger(__name__)
 
 def format_timedelta(delta):
     if not delta:
@@ -12,8 +15,8 @@ def format_timedelta(delta):
 
 def get_first_court_response(thread, source):
     message_model = {"link1": ThreadMessageLink1, "link2": ThreadMessageLink2, "link3": ThreadMessageLink3}[source]
-    messages = message_model.objects.filter(thread=thread).order_by("posted_at")
-    judges = Judge.objects.all()
+    messages = message_model.objects.filter(thread=thread).order_by("posted_at").select_related("thread")
+    judges = Judge.objects.prefetch_related("workhistory_set").all()
     for message in messages:
         for judge in judges:
             if (message.author == judge.forum_account and
@@ -21,12 +24,13 @@ def get_first_court_response(thread, source):
                     (history.end_date is None or history.end_date >= message.posted_at)
                     for history in judge.workhistory_set.all())):
                 return message.posted_at
-    return timezone.now()
+    logger.debug(f"No court response found for thread {thread.id}, source={source}")
+    return None
 
 def get_last_court_response(thread, source):
     message_model = {"link1": ThreadMessageLink1, "link2": ThreadMessageLink2, "link3": ThreadMessageLink3}[source]
-    messages = message_model.objects.filter(thread=thread).order_by("-posted_at")
-    judges = Judge.objects.all()
+    messages = message_model.objects.filter(thread=thread).order_by("-posted_at").select_related("thread")
+    judges = Judge.objects.prefetch_related("workhistory_set").all()
     for message in messages:
         for judge in judges:
             if (message.author == judge.forum_account and
@@ -34,12 +38,13 @@ def get_last_court_response(thread, source):
                     (history.end_date is None or history.end_date >= message.posted_at)
                     for history in judge.workhistory_set.all())):
                 return message.posted_at
+    logger.debug(f"No last court response found for thread {thread.id}, source={source}")
     return None
 
 def get_leading_judges(thread, source):
     message_model = {"link1": ThreadMessageLink1, "link2": ThreadMessageLink2, "link3": ThreadMessageLink3}[source]
     messages = message_model.objects.filter(thread=thread).select_related("thread")
-    judges = Judge.objects.prefetch_related("workhistory_set")
+    judges = Judge.objects.prefetch_related("workhistory_set").all()
     leading_judges = set()
     for message in messages:
         for judge in judges:
@@ -48,6 +53,8 @@ def get_leading_judges(thread, source):
                     (history.end_date is None or history.end_date >= message.posted_at)
                     for history in judge.workhistory_set.all())):
                 leading_judges.add(judge.full_name)
+            else:
+                logger.debug(f"No matching judge for author {message.author} in thread {thread.id}")
     return ", ".join(leading_judges) if leading_judges else "Не определён"
 
 def is_data_outdated(thread):
@@ -58,7 +65,7 @@ def get_claim_data(thread, source):
     last_response = get_last_court_response(thread, source)
     final_prefixes = ["Рассмотрено", "Отказано", "Важно"]
 
-    first_response_time = first_response - thread.created_at if first_response else None
+    first_response_time = first_response - thread.created_at if first_response else (timezone.now() - thread.created_at)
     if thread.prefix in final_prefixes and last_response:
         court_time = last_response - first_response
     else:
@@ -68,7 +75,7 @@ def get_claim_data(thread, source):
         "title": thread.title,
         "url": thread.url,
         "created_at": thread.created_at,
-        "first_response_time": format_timedelta(first_response_time) if first_response_time else "Нет данных",
+        "first_response_time": format_timedelta(first_response_time),
         "court_time": format_timedelta(court_time) if court_time else "Нет данных",
         "prefix": thread.prefix or "Нет",
         "status": "В разработке",

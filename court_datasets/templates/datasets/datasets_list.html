@@ -3,6 +3,7 @@
 {% block title %}{{ court_name }} - Court Datasets{% endblock %}
 
 {% block content %}
+    {% csrf_token %}
     <section class="section">
         <nav class="court-nav">
             <ul>
@@ -11,7 +12,6 @@
                 <li><a href="{% url 'datasets:rehabilitation_list' %}" class="court-nav__link {% if source == 'link3' %}active{% endif %}">Р</a></li>
             </ul>
         </nav>
-        <!-- <h1>{{ court_name }}</h1> -->
         <form method="get" class="filter-form" id="filter-form">
             <div class="filter-box">
                 <div class="filter-box__filters">
@@ -63,40 +63,41 @@
             </div>
         </form>
         <div class="message-list">
-            <div class="message-block">
-                {% if not claims %}
-                    <p class="empty-text">Данные для {{ court_name }} недоступны или отсутствуют.</p>
-                {% else %}
-                    <table class="datasets-table">
-                        <thead>
+            {% if not claims %}
+                <p class="empty-text">Данные для {{ court_name }} недоступны или отсутствуют.</p>
+            {% else %}
+                <table class="datasets-table">
+                    <thead>
+                        <tr>
+                            <th>Исковое заявление</th>
+                            <th>Дата подачи</th>
+                            <th>Первый ответ суда</th>
+                            <th>Судопроизводство</th>
+                            <th>Префикс</th>
+                            <th>Ведущий судья</th>
+                            <th>Примечания</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims %}
                             <tr>
-                                <th>Исковое заявление</th>
-                                <th>Дата подачи</th>
-                                <th>Первый ответ суда</th>
-                                <th>Судопроизводство</th>
-                                <th>Префикс</th>
-                                <th>Ведущий судья</th>
-                                <th>Примечания</th>
+                                <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
+                                <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
+                                <td>{{ claim.first_response_time|default:"—" }}</td>
+                                <td>{{ claim.court_time|default:"—" }}</td>
+                                <td>{{ claim.prefix }}</td>
+                                <td>{{ claim.leading_judges|default:"—" }}</td>
+                                <td>
+                                    <textarea class="form__input" 
+                                              data-thread-id="{{ claim.thread_id }}" 
+                                              data-source="{{ source }}" 
+                                              onblur="saveNote(this)">{{ claim.note }}</textarea>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for claim in claims %}
-                                <tr>
-                                    <td><a href="{{ claim.url }}" target="_blank">{{ claim.title }}</a></td>
-                                    <td>{{ claim.created_at|date:"d.m.Y H:i" }}</td>
-                                    <td>{{ claim.first_response_time|default:"—" }}</td>
-                                    <td>{{ claim.court_time|default:"—" }}</td>
-                                    <td>{{ claim.prefix }}</td>
-                                    <td>{{ claim.leading_judges|default:"—" }}</td>
-                                    <td>
-                                        <textarea class="form__input" data-thread-id="{{ claim.thread_id }}" data-source="{{ source }}" onblur="saveNote(this)">{{ claim.note }}</textarea>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% endif %}
-            </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
         </div>
         {% if is_paginated %}
             <div class="pagination">
@@ -114,36 +115,105 @@
     </section>
 
     <script>
+        let isSavingNote = false; // Флаг для предотвращения дублирования запросов
+
         function saveNote(element) {
+            if (isSavingNote) {
+                console.log("Save in progress, skipping duplicate request");
+                return;
+            }
+
             const threadId = element.getAttribute("data-thread-id");
-            const noteText = element.value;
+            const noteText = element.value.trim();
             const source = element.getAttribute("data-source");
+            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+            console.log("Sending note:", { threadId, noteText, source }); // Для отладки
+
+            if (!threadId || !source || !csrfToken) {
+                console.error("Missing required data:", { threadId, source, csrfToken });
+                alert("Ошибка: Не удалось сохранить примечание. Проверьте данные.");
+                return;
+            }
+
+            isSavingNote = true;
+
+            const formData = new FormData();
+            formData.append("thread_id", threadId);
+            formData.append("note", noteText);
+            formData.append("source", source);
+            formData.append("csrfmiddlewaretoken", csrfToken);
+
             fetch("{% url 'datasets:update_note' %}", {
                 method: "POST",
+                body: formData,
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "X-CSRFToken": "{{ csrf_token }}",
-                },
-                body: `thread_id=${encodeURIComponent(threadId)}¬e=${encodeURIComponent(noteText)}&source=${encodeURIComponent(source)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    console.error("Ошибка сохранения примечания:", data.error);
-                } else {
-                    console.log("Примечание сохранено:", noteText);
+                    "X-CSRFToken": csrfToken
                 }
             })
-            .catch(error => console.error("Ошибка запроса:", error));
+            .then(response => {
+                console.log("Response status:", response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log("Note saved successfully:", { threadId, source, noteText });
+                    alert("Примечание успешно сохранено");
+
+                    // Запрашиваем актуальные данные для иска
+                    fetch(`/datasets/get_claim/?thread_id=${threadId}&source=${source}`, {
+                        method: "GET",
+                        headers: {
+                            "X-CSRFToken": csrfToken
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(claimData => {
+                        if (claimData.success) {
+                            // Обновляем текст в textarea
+                            element.value = claimData.note || "";
+                            console.log("Updated note in textarea:", claimData.note);
+                        } else {
+                            console.error("Error fetching claim data:", claimData.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching claim data:", error);
+                    });
+                } else {
+                    console.error("Error saving note:", data.error);
+                    alert(`Ошибка: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error("Request error:", error);
+                alert(`Ошибка запроса: ${error.message}`);
+            })
+            .finally(() => {
+                isSavingNote = false; // Сбрасываем флаг после завершения
+            });
         }
 
         function parseTimeToMinutes(timeStr) {
             if (!timeStr || timeStr === "Нет данных" || timeStr === "—") return 0;
-            const parts = timeStr.split(" ");
-            const days = parseInt(parts[0]) || 0;
-            const hours = parseInt(parts[2]) || 0;
-            const minutes = parseInt(parts[4]) || 0;
-            return days * 1440 + hours * 60 + minutes;
+            try {
+                const parts = timeStr.split(" ");
+                const days = parseInt(parts[0]) || 0;
+                const hours = parseInt(parts[2]) || 0;
+                const minutes = parseInt(parts[4]) || 0;
+                return days * 1440 + hours * 60 + minutes;
+            } catch (e) {
+                console.error("Error parsing time:", timeStr, e);
+                return 0;
+            }
         }
 
         function getIndicatorLevel(minutes, maxMinutes) {
@@ -161,6 +231,8 @@
                 const prefixCell = row.cells[4];
                 const judgeCell = row.cells[5];
 
+                if (!firstResponseCell || !courtTimeCell) return;
+
                 const firstResponseText = firstResponseCell.textContent.trim();
                 const courtTimeText = courtTimeCell.textContent.trim();
                 const prefix = prefixCell.textContent.trim();
@@ -172,8 +244,9 @@
                 const firstResponseMinutes = parseTimeToMinutes(firstResponseText);
                 const courtTimeMinutes = parseTimeToMinutes(courtTimeText);
 
+                // Индикация для первого ответа суда
                 if (firstResponseText !== "Нет данных" && firstResponseText !== "—") {
-                    const maxFirstResponseMinutes = 3 * 1440;
+                    const maxFirstResponseMinutes = 3 * 1440; // 3 дня
                     const level = getIndicatorLevel(firstResponseMinutes, maxFirstResponseMinutes);
                     const span = document.createElement("span");
                     span.textContent = firstResponseText;
@@ -190,8 +263,9 @@
                     }
                 }
 
+                // Индикация для времени судопроизводства
                 if (courtTimeText !== "Нет данных" && courtTimeText !== "—") {
-                    const maxCourtTimeMinutes = 7 * 1440;
+                    const maxCourtTimeMinutes = 7 * 1440; // 7 дней
                     const level = getIndicatorLevel(courtTimeMinutes, maxCourtTimeMinutes);
                     const span = document.createElement("span");
                     span.textContent = courtTimeText;
